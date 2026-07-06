@@ -1,25 +1,32 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, Filter, Plus, Eye, Edit, Trash2, ChevronDown, Power } from 'lucide-react'
+import { Search, Filter, Plus, Eye, Edit, Trash2, Power, Key, AlertCircle, Loader2, Clock } from 'lucide-react'
+import { formatDistanceToNow } from 'date-fns'
 import { userService } from '../../services/user.service'
 import { useToast } from '../../components/common/Toast'
 import type { User, UserFilters, UserRole, UserStatus } from '../../types/user.types'
 import { roleOptions } from '../../types/user.types'
+import PageHeader from '../../components/common/PageHeader'
+import DataTable, { Pagination } from '../../components/common/DataTable'
+import ActionMenu from '../../components/common/ActionMenu'
+import Modal from '../../components/common/Modal'
+import PageHeading from '../../components/common/PageHeading'
 
 export default function UserListPage() {
   const toast = useToast()
   const navigate = useNavigate()
+  
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
-  const [filters, setFilters] = useState<UserFilters>({})
-  const [showFilters, setShowFilters] = useState(false)
+  const [filters, setFilters] = useState<UserFilters>({ search: '', role: undefined, status: undefined })
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
-
-  const statusOptions: { value: UserStatus; label: string; color: string }[] = [
-    { value: 'active', label: 'Active', color: 'bg-green-100 text-green-800' },
-    { value: 'inactive', label: 'Inactive', color: 'bg-red-100 text-red-800' },
-  ]
+  
+  // Modals state
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; userId: number | null }>({ isOpen: false, userId: null })
+  const [resetModal, setResetModal] = useState<{ isOpen: boolean; userId: number | null }>({ isOpen: false, userId: null })
+  const [newPassword, setNewPassword] = useState('')
+  const [actionLoading, setActionLoading] = useState(false)
 
   useEffect(() => {
     loadUsers()
@@ -28,47 +35,54 @@ export default function UserListPage() {
   const loadUsers = async () => {
     setLoading(true)
     try {
-      const response = await userService.getAll(filters, page, 20)
+      const response = await userService.getAll(filters, page, 10)
       if (response.success && response.data) {
         setUsers(response.data.items || [])
         setTotalPages(response.data.totalPages || 1)
       }
     } catch (error) {
       console.error('Failed to load users:', error)
+      toast.error('Failed to load users')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleSearch = (value: string) => {
-    setFilters({ ...filters, search: value })
-    setPage(1)
-  }
-
-  const handleRoleFilter = (value: string) => {
-    setFilters({ ...filters, role: value as UserRole || undefined })
-    setPage(1)
-  }
-
-  const handleStatusFilter = (value: string) => {
-    setFilters({ ...filters, status: value as UserStatus || undefined })
-    setPage(1)
-  }
-
-  const handleDelete = async (id: number) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
-      try {
-        const response = await userService.delete(id)
-        if (response.success) {
-          toast.success('User deleted successfully')
-          loadUsers()
-        } else {
-          toast.error('Failed to delete user')
-        }
-      } catch (error) {
-        console.error('Failed to delete user:', error)
-        toast.error('Failed to delete user')
+  const handleDelete = async () => {
+    if (!deleteModal.userId) return
+    setActionLoading(true)
+    try {
+      const response = await userService.delete(deleteModal.userId)
+      if (response.success) {
+        toast.success('User deleted successfully')
+        loadUsers()
+        setDeleteModal({ isOpen: false, userId: null })
+      } else {
+        toast.error(response.error?.message || 'Failed to delete user')
       }
+    } catch (error) {
+      toast.error('Failed to delete user')
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleResetPassword = async () => {
+    if (!resetModal.userId || !newPassword) return
+    setActionLoading(true)
+    try {
+      const response = await userService.resetPassword(resetModal.userId, newPassword)
+      if (response.success) {
+        toast.success('Password reset successfully')
+        setResetModal({ isOpen: false, userId: null })
+        setNewPassword('')
+      } else {
+        toast.error(response.error?.message || 'Failed to reset password')
+      }
+    } catch (error) {
+      toast.error('Failed to reset password')
+    } finally {
+      setActionLoading(false)
     }
   }
 
@@ -82,215 +96,253 @@ export default function UserListPage() {
         toast.error('Failed to update user status')
       }
     } catch (error) {
-      console.error('Failed to toggle user status:', error)
       toast.error('Failed to update user status')
     }
   }
 
-  return (
-    <div className="p-6 lg:p-8 space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-[#0F172A]">User Management</h1>
-          <p className="text-gray-600 mt-1">Manage system users and permissions</p>
-        </div>
-        <button 
-          onClick={() => navigate('/users/create')}
-          className="inline-flex items-center gap-2 bg-#2563EB hover:bg-#2563EBDark text-white px-4 py-2.5 rounded-xl font-medium transition-colors"
-        >
-          <Plus className="w-5 h-5" />
-          Add User
-        </button>
-      </div>
+  const roleBadgeColors: Record<UserRole, string> = {
+    'Super Admin': 'bg-red-100 text-red-700 border-red-200',
+    'Customer Admin': 'bg-blue-100 text-blue-700 border-blue-200',
+    'Admin': 'bg-amber-100 text-amber-700 border-amber-200',
+    'Editor': 'bg-purple-100 text-purple-700 border-purple-200',
+    'HR': 'bg-orange-100 text-orange-700 border-orange-200',
+    'Viewer': 'bg-slate-100 text-slate-700 border-slate-200',
+  }
 
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-        <div className="flex flex-col lg:flex-row gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return '-'
+    return new Date(dateString).toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    })
+  }
+
+  const columns = [
+    { 
+      key: 'sno', 
+      header: 'S.No', 
+      render: (_: unknown, __: User, index: number) => (page - 1) * 10 + (typeof index === 'number' ? index : 0) + 1,
+      className: 'w-16',
+    },
+    { 
+      key: 'username', 
+      header: 'Username',
+    },
+    { 
+      key: 'role', 
+      header: 'Role',
+      render: (val: UserRole) => (
+        <span className={`inline-flex items-center px-2.5 py-2.5 rounded-full text-xs font-semibold border ${roleBadgeColors[val]}`}>
+          {val}
+        </span>
+      ),
+    },
+    { 
+      key: 'status', 
+      header: 'Status',
+      render: (val: UserStatus) => (
+        <span className={`inline-flex items-center px-2.5 py-2.5 rounded-full text-xs font-semibold border capitalize ${
+          val === 'active' ? 'bg-green-100 text-green-700 border-green-200' : 'bg-red-100 text-red-700 border-red-200'
+        }`}>
+          {val}
+        </span>
+      ),
+    },
+    { 
+      key: 'last_login', 
+      header: 'Last Login',
+      render: (val: string) => val ? (
+        <span className="inline-flex items-center gap-1.5">
+          <Clock className="w-4 h-4 shrink-0" />
+          {formatDistanceToNow(new Date(val), { addSuffix: true })}
+        </span>
+      ) : 'Never',
+    },
+    { 
+      key: 'created_at', 
+      header: 'Created Date',
+      render: (val: string) => formatDate(val),
+    },
+    { 
+      key: 'updated_at', 
+      header: 'Last Updated',
+      render: (_: unknown, user: User) => formatDate(user.updated_at || user.created_at),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      render: (_: any, user: User) => (
+        <ActionMenu 
+          items={[
+            { label: 'View', icon: <Eye className="w-4 h-4" />, onClick: () => navigate(`/users/${user.id}`) },
+            { label: 'Edit', icon: <Edit className="w-4 h-4" />, onClick: () => navigate(`/users/${user.id}/edit`) },
+            { label: 'Reset Password', icon: <Key className="w-4 h-4" />, onClick: () => setResetModal({ isOpen: true, userId: user.id }) },
+            { 
+              label: user.status === 'active' ? 'Deactivate' : 'Activate', 
+              icon: <Power className="w-4 h-4" />, 
+              onClick: () => handleToggleStatus(user.id),
+              color: user.status === 'active' ? 'warning' : 'success'
+            },
+            { 
+              label: 'Delete', 
+              icon: <Trash2 className="w-4 h-4" />, 
+              onClick: () => setDeleteModal({ isOpen: true, userId: user.id }),
+              color: 'danger',
+              disabled: user.role === 'Super Admin'
+            },
+          ]}
+        />
+      )
+    }
+  ]
+
+  return (
+    <div className="p-6 lg:p-10 space-y-8 font-['Nunito_Sans']">
+      <PageHeading 
+        title="User Management" 
+        description="Create and manage administrative users and their permissions."
+        action={
+          <button
+            onClick={() => navigate('/users/create')}
+            className="inline-flex items-center gap-2 bg-[#1E3A5F] hover:bg-[#0F172A] text-white px-4 py-2.5 rounded-xl font-bold shadow-lg shadow-blue-900/20 transition-all"
+          >
+            <Plus className="w-5 h-5" />
+            Add User
+          </button>
+        }
+      />
+
+      {/* Filters Bar */}
+      <div className="bg-white rounded-[20px] p-6 shadow-sm border border-slate-100 flex flex-col lg:flex-row gap-4 items-end">
+        <div className="flex-1 w-full space-y-1.5">
+          <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Search Username</label>
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
             <input
               type="text"
-              placeholder="Search users..."
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-#2563EB focus:border-transparent outline-none"
-              onChange={(e) => handleSearch(e.target.value)}
+              placeholder="e.g. admin_user"
+              value={filters.search}
+              onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+              className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#1E3A5F] outline-none text-sm font-medium transition-all"
             />
           </div>
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+        </div>
+        
+        <div className="w-full lg:w-48 space-y-1.5">
+          <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Role</label>
+          <select
+            value={filters.role || ''}
+            onChange={(e) => setFilters({ ...filters, role: e.target.value as UserRole || undefined })}
+            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#1E3A5F] outline-none text-sm font-medium transition-all cursor-pointer"
           >
-            <Filter className="w-5 h-5" />
-            Filters
-            <ChevronDown className={`w-4 h-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
-          </button>
+            <option value="">All Roles</option>
+            {roleOptions.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+          </select>
         </div>
 
-        {showFilters && (
-          <div className="mt-4 pt-4 border-t border-gray-200 grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
-              <select
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-#2563EB focus:border-transparent outline-none"
-                onChange={(e) => handleRoleFilter(e.target.value)}
-              >
-                <option value="">All Roles</option>
-                {roleOptions.map(option => (
-                  <option key={option.value} value={option.value}>{option.label}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-              <select
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-#2563EB focus:border-transparent outline-none"
-                onChange={(e) => handleStatusFilter(e.target.value)}
-              >
-                <option value="">All Status</option>
-                {statusOptions.map(option => (
-                  <option key={option.value} value={option.value}>{option.label}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-        )}
+        <div className="w-full lg:w-48 space-y-1.5">
+          <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Status</label>
+          <select
+            value={filters.status || ''}
+            onChange={(e) => setFilters({ ...filters, status: e.target.value as UserStatus || undefined })}
+            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#1E3A5F] outline-none text-sm font-medium transition-all cursor-pointer"
+          >
+            <option value="">All Status</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+        </div>
       </div>
 
+      {/* Table Section */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-[#F8FAFC] border-b border-gray-200">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-[#0F172A] uppercase tracking-wider">S.No</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-[#0F172A] uppercase tracking-wider">User Name</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-[#0F172A] uppercase tracking-wider">Role</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-[#0F172A] uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-[#0F172A] uppercase tracking-wider">Last Login</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-[#0F172A] uppercase tracking-wider">Created Date</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-[#0F172A] uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {loading ? (
-                [...Array(5)].map((_: any, i: number) => (
-                  <tr key={i}>
-                    <td colSpan={7} className="px-6 py-4">
-                      <div className="animate-pulse h-4 bg-gray-200 rounded" />
-                    </td>
-                  </tr>
-                ))
-              ) : users.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
-                    No users found
-                  </td>
-                </tr>
-              ) : (
-                users.map((user, index) => (
-                  <tr key={user.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 text-gray-600">{(page - 1) * 20 + index + 1}</td>
-                    <td className="px-6 py-4">
-                      <div className="font-medium text-[#0F172A]">{user.full_name}</div>
-                      <div className="text-sm text-gray-500">{user.email}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {user.role}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        user.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                      }`}>
-                        {user.status === 'active' ? 'Active' : 'Inactive'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-gray-600 text-sm">
-                      {user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never'}
-                    </td>
-                    <td className="px-6 py-4 text-gray-600 text-sm">
-                      {new Date(user.created_date).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <button 
-                          onClick={() => navigate(`/users/${user.id}`)}
-                          className="p-2 text-gray-600 hover:text-#2563EB hover:bg-orange-50 rounded-lg transition-colors" 
-                          title="View"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button 
-                          onClick={() => navigate(`/users/${user.id}/edit`)}
-                          className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" 
-                          title="Edit"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleToggleStatus(user.id)}
-                          className={`p-2 rounded-lg transition-colors ${
-                            user.status === 'active' 
-                              ? 'text-gray-600 hover:text-orange-600 hover:bg-orange-50' 
-                              : 'text-gray-600 hover:text-green-600 hover:bg-green-50'
-                          }`}
-                          title={user.status === 'active' ? 'Deactivate' : 'Activate'}
-                        >
-                          <Power className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(user.id)}
-                          className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Delete"
-                          disabled={user.role === 'Super Admin'}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-            <p className="text-sm text-gray-600">
-              Page {page} of {totalPages}
-            </p>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                Previous
-              </button>
-              {[...Array(totalPages)].map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setPage(i + 1)}
-                  className={`px-3 py-1.5 rounded-lg transition-colors ${
-                    page === i + 1
-                      ? 'bg-#2563EB text-white'
-                      : 'border border-gray-300 hover:bg-gray-50'
-                  }`}
-                >
-                  {i + 1}
-                </button>
-              ))}
-              <button
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        )}
+        <DataTable 
+          columns={columns as any} 
+          data={users as any} 
+          loading={loading}
+          emptyMessage="No users found in the system."
+        />
+        <Pagination 
+          currentPage={page} 
+          totalPages={totalPages} 
+          onPageChange={setPage} 
+        />
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, userId: null })}
+        title="Confirm Deletion"
+        footer={
+          <>
+            <button 
+              onClick={() => setDeleteModal({ isOpen: false, userId: null })}
+              className="px-4 py-2 text-slate-600 font-bold hover:bg-slate-100 rounded-xl transition-all"
+            >
+              Cancel
+            </button>
+            <button 
+              onClick={handleDelete}
+              disabled={actionLoading}
+              className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-lg shadow-red-600/20 transition-all flex items-center gap-2"
+            >
+              {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+              Delete User
+            </button>
+          </>
+        }
+      >
+        <div className="flex items-center gap-4 text-slate-600">
+          <div className="bg-red-50 p-3 rounded-full">
+            <AlertCircle className="w-8 h-8 text-red-600" />
+          </div>
+          <p className="font-medium">Are you sure you want to delete this user? This action can be undone by an administrator later but will remove access immediately.</p>
+        </div>
+      </Modal>
+
+      {/* Reset Password Modal */}
+      <Modal
+        isOpen={resetModal.isOpen}
+        onClose={() => {
+          setResetModal({ isOpen: false, userId: null })
+          setNewPassword('')
+        }}
+        title="Reset Password"
+        footer={
+          <>
+            <button 
+              onClick={() => setResetModal({ isOpen: false, userId: null })}
+              className="px-4 py-2 text-slate-600 font-bold hover:bg-slate-100 rounded-xl transition-all"
+            >
+              Cancel
+            </button>
+            <button 
+              onClick={handleResetPassword}
+              disabled={actionLoading || !newPassword}
+              className="px-6 py-2 bg-[#1E3A5F] hover:bg-[#0F172A] text-white font-bold rounded-xl shadow-lg shadow-blue-900/20 transition-all flex items-center gap-2"
+            >
+              {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Key className="w-4 h-4" />}
+              Update Password
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-slate-500">Enter a new secure password for this user. They will need this to login next time.</p>
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">New Password</label>
+            <input
+              type="password"
+              placeholder="Enter new password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#1E3A5F] outline-none text-sm font-medium"
+            />
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }

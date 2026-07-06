@@ -3,6 +3,7 @@ const router = express.Router();
 const { body } = require('express-validator');
 const caseStudyController = require('../controllers/caseStudyController');
 const authMiddleware = require('../middleware/auth');
+const { checkPermission } = require('../middleware/rbac');
 const multer = require('multer');
 
 // Configure multer for memory storage
@@ -31,10 +32,10 @@ const caseStudyValidation = [
 ];
 
 // Routes
-router.get('/', authMiddleware, caseStudyController.getAllCaseStudies);
-router.get('/:id', authMiddleware, caseStudyController.getCaseStudyById);
-router.post('/', authMiddleware, upload.single('featured_image'), caseStudyValidation, caseStudyController.createCaseStudy);
-router.put('/:id', authMiddleware, upload.single('featured_image'), caseStudyValidation, caseStudyController.updateCaseStudy);
-router.delete('/:id', authMiddleware, caseStudyController.deleteCaseStudy);
+router.get('/', authMiddleware, checkPermission('Case Studies', 'read'), caseStudyController.getAllCaseStudies);
+router.get('/:id', authMiddleware, checkPermission('Case Studies', 'read'), caseStudyController.getCaseStudyById);
+router.post('/', authMiddleware, checkPermission('Case Studies', 'create'), upload.single('featured_image'), caseStudyValidation, caseStudyController.createCaseStudy);
+router.put('/:id', authMiddleware, checkPermission('Case Studies', 'update'), upload.single('featured_image'), caseStudyValidation, caseStudyController.updateCaseStudy);
+router.delete('/:id', authMiddleware, checkPermission('Case Studies', 'delete'), caseStudyController.deleteCaseStudy);
 
 module.exports = router;

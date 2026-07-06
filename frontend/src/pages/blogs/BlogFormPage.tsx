@@ -3,13 +3,11 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { ArrowLeft, Save, X, Star } from 'lucide-react'
 import { blogService } from '../../services/blog.service'
 import { useToast } from '../../components/common/Toast'
+import Breadcrumb from '../../components/common/Breadcrumb'
 import type { BlogFormData, BlogStatus } from '../../types/blog.types'
+import { BLOG_STATUS_FORM_OPTIONS } from '../../types/blog.types'
 
-const statusOptions: { value: BlogStatus; label: string }[] = [
-  { value: 'draft', label: 'Draft' },
-  { value: 'published', label: 'Published' },
-  { value: 'unpublished', label: 'Unpublished' },
-]
+const statusOptions = BLOG_STATUS_FORM_OPTIONS
 
 const convertToFormData = (data: BlogFormData): FormData => {
   const formData = new FormData()
@@ -145,8 +143,8 @@ export default function BlogFormPage() {
       newErrors.author = 'Author must be at least 2 characters'
     }
 
-    if (formData.status === 'published' && !formData.publish_date) {
-      newErrors.publish_date = 'Publish date is required for published blogs'
+    if ((formData.status === 'published' || formData.status === 'scheduled') && !formData.publish_date) {
+      newErrors.publish_date = 'Publish date is required for published or scheduled blogs'
     }
 
     setErrors(newErrors)
@@ -219,6 +217,7 @@ export default function BlogFormPage() {
           </button>
           <div>
             <h1 className="text-3xl font-bold text-gray-900">{isView ? 'View Blog' : isEdit ? 'Edit Blog' : 'Add New Blog'}</h1>
+            <Breadcrumb />
             <p className="text-gray-600 mt-1">{isView ? 'View blog post' : isEdit ? 'Update blog post' : 'Create a new blog post'}</p>
           </div>
         </div>

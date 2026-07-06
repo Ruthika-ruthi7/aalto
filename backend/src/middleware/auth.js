@@ -18,8 +18,21 @@ const authMiddleware = (req, res, next) => {
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
-    // Add user info to request
-    req.user = decoded;
+    const userId = decoded.id ?? decoded.userId ?? decoded.User_id;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid token'
+      });
+    }
+
+    // Add normalized user info to request
+    req.user = {
+      ...decoded,
+      id: userId,
+      userId,
+      User_id: userId
+    };
     next();
   } catch (error) {
     if (error.name === 'TokenExpiredError') {

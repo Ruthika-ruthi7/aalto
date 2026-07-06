@@ -3,6 +3,7 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { ArrowLeft, Save, X, Upload, X as XIcon } from 'lucide-react'
 import { galleryService } from '../../services/gallery.service'
 import { useToast } from '../../components/common/Toast'
+import Breadcrumb from '../../components/common/Breadcrumb'
 import type { GalleryFormData, GalleryStatus } from '../../types/gallery.types'
 
 const statusOptions: { value: GalleryStatus; label: string }[] = [
@@ -212,6 +213,7 @@ export default function GalleryFormPage() {
           </button>
           <div>
             <h1 className="text-3xl font-bold text-gray-900">{isView ? 'View Gallery' : isEdit ? 'Edit Gallery' : 'Add New Gallery'}</h1>
+            <Breadcrumb />
             <p className="text-gray-600 mt-1">{isView ? 'View gallery details' : isEdit ? 'Update gallery details' : 'Create a new image gallery'}</p>
           </div>
         </div>

@@ -119,6 +119,7 @@ export default function DashboardPage() {
       {/* Page Header */}
       <div className="mb-6">
         <h1 className="text-2xl lg:text-3xl font-bold text-[#0F172A]">{greeting}</h1>
+
         <p className="text-gray-500 text-sm lg:text-base mt-1">{date}</p>
         <p className="text-gray-600 mt-2">{subtitle}</p>
       </div>

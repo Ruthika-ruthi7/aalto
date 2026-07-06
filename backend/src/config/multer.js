@@ -5,7 +5,7 @@ require('dotenv').config();
 
 // Create uploads directory if it doesn't exist
 const uploadDir = process.env.UPLOAD_DIR || './uploads';
-const subdirs = ['resumes', 'images', 'featured'];
+const subdirs = ['resumes', 'images', 'featured', 'profile'];
 
 subdirs.forEach(dir => {
   const fullPath = path.join(uploadDir, dir);
@@ -18,13 +18,15 @@ subdirs.forEach(dir => {
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     let subfolder = 'images';
-    
+
     if (file.fieldname === 'resume') {
       subfolder = 'resumes';
     } else if (file.fieldname === 'featured_image') {
       subfolder = 'featured';
+    } else if (file.fieldname === 'profile_image') {
+      subfolder = 'profile';
     }
-    
+
     const fullPath = path.join(uploadDir, subfolder);
     cb(null, fullPath);
   },

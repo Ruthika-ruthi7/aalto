@@ -4,6 +4,10 @@ import { Search, Plus, Edit, Trash2, Download, Eye } from 'lucide-react'
 import { applicantService } from '../../services/applicant.service'
 import { useToast } from '../../components/common/Toast'
 import ActionMenu from '../../components/common/ActionMenu'
+import PageHeading from '../../components/common/PageHeading'
+import StatusBadge from '../../components/common/StatusBadge'
+import { TABLE_HEAD_CLASS, TABLE_HEADER_CELL_CLASS, TABLE_HEADER_CELL_CENTER_CLASS, TABLE_CELL_CLASS, TABLE_CELL_CENTER_CLASS, ACTION_COL_WIDTH, TABLE_SKELETON_CLASS, TABLE_ROW_CLASS } from '../../components/common/tableStyles'
+import { getApplicantJobId } from '../../utils/formatJobReferenceId'
 import type { Applicant, ApplicantFilters, ApplicantStatus } from '../../types/applicant.types'
 
 export default function ApplicantsListPage() {
@@ -107,27 +111,80 @@ export default function ApplicantsListPage() {
   const getStatusBadge = (status: ApplicantStatus) => {
     const option = statusOptions.find(o => o.value === status)
     return (
-      <span className={`px-3 py-1 rounded-full text-xs font-medium ${option?.color || 'bg-gray-100 text-gray-800'}`}>
-        {option?.label || status.replace(/_/g, ' ')}
-      </span>
+      <StatusBadge
+        status={status}
+        label={option?.label}
+        colorMap={Object.fromEntries(statusOptions.map(o => [o.value, o.color]))}
+      />
     )
+  }
+
+  const getStatusLabel = (status?: ApplicantStatus) => {
+    return statusOptions.find(o => o.value === status)?.label || status || ''
+  }
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return '-'
+    return new Date(dateString).toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    })
+  }
+
+  const handleExportCSV = () => {
+    const headers = ['S.No', 'Job ID', 'Job Title', 'Applicant Name', 'Mobile', 'Email', 'Experience', 'Applied Date', 'Status']
+    const rows = applicants.map((applicant, index) => [
+      String((page - 1) * 20 + index + 1),
+      getApplicantJobId(applicant),
+      applicant.position || '',
+      applicant.name || '',
+      applicant.phone || '',
+      applicant.email || '',
+      applicant.experience || '',
+      formatDate(applicant.applied_at || applicant.applied_date),
+      getStatusLabel(applicant.status),
+    ])
+    const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `applicants_${new Date().toISOString().split('T')[0]}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-[#0F172A]">Applicants</h1>
-          <p className="text-gray-600 mt-1">Manage job applications</p>
+      <div className="flex items-start justify-between gap-6">
+        <div className="min-w-0">
+          <PageHeading
+            title="Applicants"
+            description="Manage job applications"
+          />
         </div>
-        <button className="inline-flex items-center gap-2 bg-#2563EB hover:bg-#2563EBDark text-white px-4 py-2.5 rounded-xl font-medium transition-colors">
-          <Plus className="w-5 h-5" />
-          Add Applicant
-        </button>
+
+        <div className="flex items-center justify-end gap-4 pt-1">
+          <button
+            onClick={handleExportCSV}
+            className="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700"
+          >
+            <Download className="w-5 h-5" />
+            Export CSV
+          </button>
+          <button
+            onClick={() => navigate('/applicants/create')}
+            className="inline-flex items-center gap-2 bg-[#2563EB] hover:bg-[#1E40AF] text-white px-4 py-2.5 rounded-xl font-medium transition-colors"
+          >
+            <Plus className="w-5 h-5" />
+            Add Applicant
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-        <div className="flex flex-col lg:flex-row gap-4">
+        <div className="flex flex-col lg:flex-row lg:items-center gap-4">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
@@ -137,7 +194,7 @@ export default function ApplicantsListPage() {
               onChange={(e) => handleSearch(e.target.value)}
             />
           </div>
-          <div className="lg:w-48">
+          <div className="w-full lg:w-48">
             <select
               className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#2563EB] focus:border-transparent outline-none"
               onChange={(e) => handleStatusFilter(e.target.value)}
@@ -153,54 +210,87 @@ export default function ApplicantsListPage() {
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-[#F8FAFC] border-b border-gray-200">
+          <table className="w-full table-fixed min-w-[1100px]">
+            <thead className={TABLE_HEAD_CLASS}>
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-[#0F172A] uppercase tracking-wider">S.No</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-[#0F172A] uppercase tracking-wider">Job ID</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-[#0F172A] uppercase tracking-wider">Job Title</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-[#0F172A] uppercase tracking-wider">Applicant Name</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-[#0F172A] uppercase tracking-wider">Mobile</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-[#0F172A] uppercase tracking-wider">Email</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-[#0F172A] uppercase tracking-wider">Experience</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-[#0F172A] uppercase tracking-wider">Applied Date</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-[#0F172A] uppercase tracking-wider">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-[#0F172A] uppercase tracking-wider">Actions</th>
+                <th className={`${TABLE_HEADER_CELL_CENTER_CLASS} w-[70px]`}>S.No</th>
+                <th className={`${TABLE_HEADER_CELL_CLASS} w-[110px]`}>Job ID</th>
+                <th className={`${TABLE_HEADER_CELL_CLASS} w-[240px]`}>Job Title</th>
+                <th className={`${TABLE_HEADER_CELL_CLASS} w-[220px]`}>Applicant Name</th>
+                <th className={`${TABLE_HEADER_CELL_CLASS} w-[160px]`}>Mobile</th>
+                <th className={`${TABLE_HEADER_CELL_CLASS} w-[280px]`}>Email</th>
+                <th className={`${TABLE_HEADER_CELL_CLASS} w-[140px]`}>Experience</th>
+                <th className={`${TABLE_HEADER_CELL_CLASS} w-[150px]`}>Applied Date</th>
+                <th className={`${TABLE_HEADER_CELL_CENTER_CLASS} w-[140px]`}>Status</th>
+                <th className={`${TABLE_HEADER_CELL_CENTER_CLASS} ${ACTION_COL_WIDTH} w-[100px]`}>Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {loading ? (
                 [...Array(5)].map((_, i) => (
                   <tr key={i}>
-                    <td colSpan={10} className="px-4 py-4">
+                    <td colSpan={10} className={TABLE_SKELETON_CLASS}>
                       <div className="animate-pulse h-4 bg-gray-200 rounded" />
                     </td>
                   </tr>
                 ))
               ) : applicants.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="px-4 py-12 text-center text-gray-500">
+                  <td colSpan={10} className={`${TABLE_CELL_CLASS} text-center text-gray-500`}>
                     No applicants found
                   </td>
                 </tr>
               ) : (
                 applicants.map((applicant, index) => (
-                  <tr key={applicant.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 text-gray-600 text-sm">{(page - 1) * 20 + index + 1}</td>
-                    <td className="px-4 py-3 text-gray-600 text-sm">{applicant.apply_id || '-'}</td>
-                    <td className="px-4 py-3 text-gray-600 text-sm">{applicant.position || '-'}</td>
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-[#0F172A] text-sm max-w-xs truncate" title={applicant.name}>{applicant.name}</div>
+                  <tr key={applicant.id} className={TABLE_ROW_CLASS}>
+                    <td className={TABLE_CELL_CENTER_CLASS}>{(page - 1) * 20 + index + 1}</td>
+
+                    <td className={TABLE_CELL_CLASS}>
+                      <div className="truncate" title={getApplicantJobId(applicant)}>
+                        {getApplicantJobId(applicant)}
+                      </div>
                     </td>
-                    <td className="px-4 py-3 text-gray-600 text-sm">{applicant.phone}</td>
-                    <td className="px-4 py-3 text-gray-600 text-sm">{applicant.email}</td>
-                    <td className="px-4 py-3 text-gray-600 text-sm">{applicant.experience || '-'}</td>
-                    <td className="px-4 py-3 text-gray-600 text-sm">
-                      {applicant.applied_at ? new Date(applicant.applied_at).toLocaleDateString('en-GB') : '-'}
+
+                    <td className={TABLE_CELL_CLASS}>
+                      <div className="truncate" title={applicant.position || '-'}>
+                        {applicant.position || '-'}
+                      </div>
                     </td>
-                    <td className="px-4 py-3">{getStatusBadge(applicant.status)}</td>
-                    <td className="px-4 py-3">
-                      <ActionMenu items={getActionMenuItems(applicant)} ariaLabel={`Actions for ${applicant.name}`} />
+
+                    <td className={TABLE_CELL_CLASS}>
+                      <div className="truncate font-medium text-[#0F172A]" title={applicant.name}>
+                        {applicant.name}
+                      </div>
+                    </td>
+
+                    <td className={TABLE_CELL_CLASS}>
+                      <div className="truncate" title={applicant.phone}>
+                        {applicant.phone}
+                      </div>
+                    </td>
+
+                    <td className={TABLE_CELL_CLASS}>
+                      <div className="truncate" title={applicant.email}>
+                        {applicant.email}
+                      </div>
+                    </td>
+
+                    <td className={TABLE_CELL_CLASS}>
+                      <div className="truncate" title={applicant.experience || '-'}>
+                        {applicant.experience || '-'}
+                      </div>
+                    </td>
+
+                    <td className={TABLE_CELL_CLASS}>
+                      {formatDate(applicant.applied_at || applicant.applied_date)}
+                    </td>
+
+                    <td className={TABLE_CELL_CENTER_CLASS}>{getStatusBadge(applicant.status)}</td>
+
+                    <td className={`${TABLE_CELL_CENTER_CLASS} w-[100px]`}>
+                      <div className="flex justify-center">
+                        <ActionMenu items={getActionMenuItems(applicant)} ariaLabel={`Actions for ${applicant.name}`} />
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -245,3 +335,4 @@ export default function ApplicantsListPage() {
     </div>
   )
 }
+

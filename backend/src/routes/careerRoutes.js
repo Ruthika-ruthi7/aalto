@@ -3,6 +3,7 @@ const router = express.Router();
 const { body } = require('express-validator');
 const careerController = require('../controllers/careerController');
 const authMiddleware = require('../middleware/auth');
+const { checkPermission } = require('../middleware/rbac');
 
 // Validation rules
 const careerValidation = [
@@ -12,10 +13,10 @@ const careerValidation = [
 ];
 
 // Routes
-router.get('/', authMiddleware, careerController.getAllCareers);
-router.get('/:id', authMiddleware, careerController.getCareerById);
-router.post('/', authMiddleware, careerValidation, careerController.createCareer);
-router.put('/:id', authMiddleware, careerController.updateCareer);
-router.delete('/:id', authMiddleware, careerController.deleteCareer);
+router.get('/', authMiddleware, checkPermission('Careers', 'read'), careerController.getAllCareers);
+router.get('/:id', authMiddleware, checkPermission('Careers', 'read'), careerController.getCareerById);
+router.post('/', authMiddleware, checkPermission('Careers', 'create'), careerValidation, careerController.createCareer);
+router.put('/:id', authMiddleware, checkPermission('Careers', 'update'), careerController.updateCareer);
+router.delete('/:id', authMiddleware, checkPermission('Careers', 'delete'), careerController.deleteCareer);
 
 module.exports = router;

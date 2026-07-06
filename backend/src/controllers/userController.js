@@ -1,6 +1,6 @@
 const { pool } = require('../config/database');
 const { successResponse, errorResponse } = require('../utils/response');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 
 // Get all users with pagination and filters
 const getAllUsers = async (req, res) => {
@@ -8,7 +8,7 @@ const getAllUsers = async (req, res) => {
     const { page = 1, limit = 20, role, status, search } = req.query;
     const offset = (page - 1) * limit;
 
-    let query = 'SELECT id, full_name, username, email, phone, role, status, last_login, created_date FROM users WHERE 1=1';
+    let query = 'SELECT id, username, role, status, last_login, created_at, created_by FROM users WHERE deleted_at IS NULL';
     const params = [];
 
     if (role) {
@@ -22,18 +22,18 @@ const getAllUsers = async (req, res) => {
     }
 
     if (search) {
-      query += ' AND (full_name LIKE ? OR username LIKE ? OR email LIKE ?)';
+      query += ' AND (username LIKE ?)';
       const searchTerm = `%${search}%`;
-      params.push(searchTerm, searchTerm, searchTerm);
+      params.push(searchTerm);
     }
 
-    query += ' ORDER BY created_date DESC LIMIT ? OFFSET ?';
+    query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
     params.push(parseInt(limit), parseInt(offset));
 
     const [users] = await pool.query(query, params);
 
     // Get total count
-    let countQuery = 'SELECT COUNT(*) as total FROM users WHERE 1=1';
+    let countQuery = 'SELECT COUNT(*) as total FROM users WHERE deleted_at IS NULL';
     const countParams = [];
 
     if (role) {
@@ -47,9 +47,9 @@ const getAllUsers = async (req, res) => {
     }
 
     if (search) {
-      countQuery += ' AND (full_name LIKE ? OR username LIKE ? OR email LIKE ?)';
+      countQuery += ' AND (username LIKE ?)';
       const searchTerm = `%${search}%`;
-      countParams.push(searchTerm, searchTerm, searchTerm);
+      countParams.push(searchTerm);
     }
 
     const [countResult] = await pool.query(countQuery, countParams);
@@ -73,7 +73,7 @@ const getUserById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const [users] = await pool.query('SELECT id, full_name, username, email, phone, role, status, last_login, created_date FROM users WHERE id = ?', [id]);
+    const [users] = await pool.query('SELECT id, username, role, status, permissions, last_login, created_at FROM users WHERE id = ? AND deleted_at IS NULL', [id]);
 
     if (users.length === 0) {
       return errorResponse(res, 'User not found', 404);
@@ -90,12 +90,10 @@ const getUserById = async (req, res) => {
 const createUser = async (req, res) => {
   try {
     const {
-      full_name,
       username,
-      email,
       password,
-      phone,
-      role = 'Viewer',
+      role,
+      permissions,
       status = 'active'
     } = req.body;
 
@@ -105,23 +103,17 @@ const createUser = async (req, res) => {
       return errorResponse(res, 'Username already exists', 400);
     }
 
-    // Check if email already exists
-    const [existingEmail] = await pool.query('SELECT id FROM users WHERE email = ?', [email]);
-    if (existingEmail.length > 0) {
-      return errorResponse(res, 'Email already exists', 400);
-    }
-
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const [result] = await pool.query(
       `INSERT INTO users 
-       (full_name, username, email, password, phone, role, status, created_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [full_name, username, email, hashedPassword, phone, role, status, req.user?.User_id || 1]
+       (username, password_hash, role, permissions, status, created_by)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [username, hashedPassword, role, JSON.stringify(permissions), status, req.user?.id || 1]
     );
 
-    const [newUser] = await pool.query('SELECT id, full_name, username, email, phone, role, status, last_login, created_date FROM users WHERE id = ?', [result.insertId]);
+    const [newUser] = await pool.query('SELECT id, username, role, status, permissions, last_login, created_at FROM users WHERE id = ?', [result.insertId]);
 
     successResponse(res, newUser[0], 'User created successfully', 201);
   } catch (error) {
@@ -135,12 +127,10 @@ const updateUser = async (req, res) => {
   try {
     const { id } = req.params;
     const {
-      full_name,
       username,
-      email,
       password,
-      phone,
       role,
+      permissions,
       status
     } = req.body;
 
@@ -150,23 +140,17 @@ const updateUser = async (req, res) => {
       return errorResponse(res, 'Username already exists', 400);
     }
 
-    // Check if email already exists (excluding current user)
-    const [existingEmail] = await pool.query('SELECT id FROM users WHERE email = ? AND id != ?', [email, id]);
-    if (existingEmail.length > 0) {
-      return errorResponse(res, 'Email already exists', 400);
-    }
-
     // Build update query dynamically
-    let updateQuery = 'UPDATE users SET full_name = ?, username = ?, email = ?, phone = ?, role = ?, status = ?';
-    const updateParams = [full_name, username, email, phone, role, status];
+    let updateQuery = 'UPDATE users SET username = ?, role = ?, permissions = ?, status = ?';
+    const updateParams = [username, role, JSON.stringify(permissions), status];
 
     if (password) {
       const hashedPassword = await bcrypt.hash(password, 10);
-      updateQuery += ', password = ?';
+      updateQuery += ', password_hash = ?';
       updateParams.push(hashedPassword);
     }
 
-    updateQuery += ' WHERE id = ?';
+    updateQuery += ' WHERE id = ? AND deleted_at IS NULL';
     updateParams.push(id);
 
     const [result] = await pool.query(updateQuery, updateParams);
@@ -175,7 +159,7 @@ const updateUser = async (req, res) => {
       return errorResponse(res, 'User not found', 404);
     }
 
-    const [updatedUser] = await pool.query('SELECT id, full_name, username, email, phone, role, status, last_login, created_date FROM users WHERE id = ?', [id]);
+    const [updatedUser] = await pool.query('SELECT id, username, role, status, permissions, last_login, created_at FROM users WHERE id = ?', [id]);
 
     successResponse(res, updatedUser[0], 'User updated successfully');
   } catch (error) {
@@ -184,7 +168,7 @@ const updateUser = async (req, res) => {
   }
 };
 
-// Delete user
+// Soft Delete user
 const deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
@@ -195,7 +179,8 @@ const deleteUser = async (req, res) => {
       return errorResponse(res, 'Cannot delete Super Admin', 403);
     }
 
-    const [result] = await pool.query('DELETE FROM users WHERE id = ?', [id]);
+    // Soft delete
+    const [result] = await pool.query('UPDATE users SET deleted_at = NOW() WHERE id = ?', [id]);
 
     if (result.affectedRows === 0) {
       return errorResponse(res, 'User not found', 404);
@@ -213,7 +198,7 @@ const toggleUserStatus = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const [user] = await pool.query('SELECT status FROM users WHERE id = ?', [id]);
+    const [user] = await pool.query('SELECT status, role FROM users WHERE id = ? AND deleted_at IS NULL', [id]);
     if (user.length === 0) {
       return errorResponse(res, 'User not found', 404);
     }
@@ -231,12 +216,36 @@ const toggleUserStatus = async (req, res) => {
       return errorResponse(res, 'User not found', 404);
     }
 
-    const [updatedUser] = await pool.query('SELECT id, full_name, username, email, phone, role, status, last_login, created_date FROM users WHERE id = ?', [id]);
+    const [updatedUser] = await pool.query('SELECT id, username, role, status, last_login, created_at FROM users WHERE id = ?', [id]);
 
     successResponse(res, updatedUser[0], `User ${newStatus} successfully`);
   } catch (error) {
     console.error('Toggle user status error:', error);
     errorResponse(res, 'Failed to toggle user status', 500, error);
+  }
+};
+
+// Reset Password
+const resetPassword = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { password } = req.body;
+
+    if (!password) {
+      return errorResponse(res, 'New password is required', 400);
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const [result] = await pool.query('UPDATE users SET password_hash = ? WHERE id = ? AND deleted_at IS NULL', [hashedPassword, id]);
+
+    if (result.affectedRows === 0) {
+      return errorResponse(res, 'User not found', 404);
+    }
+
+    successResponse(res, null, 'Password reset successfully');
+  } catch (error) {
+    console.error('Reset password error:', error);
+    errorResponse(res, 'Failed to reset password', 500, error);
   }
 };
 
@@ -246,5 +255,6 @@ module.exports = {
   createUser,
   updateUser,
   deleteUser,
-  toggleUserStatus
+  toggleUserStatus,
+  resetPassword
 };

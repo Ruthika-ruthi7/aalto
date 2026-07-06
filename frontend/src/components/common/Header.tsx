@@ -1,12 +1,20 @@
 import { useState, useRef, useEffect } from 'react'
 import { Search, Bell, User, LogOut, ChevronDown, Menu, X, CheckCheck, Eye, Check, AlertCircle, Trash2 } from 'lucide-react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { authService } from '../../services/auth.service'
 import { notificationService } from '../../services/notification.service'
 import type { Notification } from '../../types/notification.types'
 import { useToast } from './Toast'
 
-export default function Header() {
+export default function Header({
+  onMobileMenuClick,
+  onToggleSidebar,
+  sidebarCollapsed,
+}: {
+  onMobileMenuClick?: () => void
+  onToggleSidebar?: () => void
+  sidebarCollapsed?: boolean
+}) {
   const [notificationOpen, setNotificationOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -16,15 +24,42 @@ export default function Header() {
   const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null)
   const notificationRef = useRef<HTMLDivElement>(null)
   const userMenuRef = useRef<HTMLDivElement>(null)
-  const location = useLocation()
   const navigate = useNavigate()
   const toast = useToast()
 
-  const user = JSON.parse(localStorage.getItem('user') || '{}')
+  const readStoredUser = () => {
+    try {
+      return JSON.parse(localStorage.getItem('user') || '{}')
+    } catch {
+      return {}
+    }
+  }
+
+  const [user, setUser] = useState(readStoredUser)
+
+  const displayName = user.full_name || user.User_name || [user.first_name, user.last_name].filter(Boolean).join(' ') || user.username || 'Admin'
+  const profileImage = user.profile_image
 
   useEffect(() => {
     loadNotifications()
     loadUnreadCount()
+  }, [])
+
+  useEffect(() => {
+    const handleUserUpdated = (event: Event) => {
+      const customEvent = event as CustomEvent
+      setUser(customEvent.detail || readStoredUser())
+    }
+
+    const handleStorage = () => setUser(readStoredUser())
+
+    window.addEventListener('userUpdated', handleUserUpdated)
+    window.addEventListener('storage', handleStorage)
+
+    return () => {
+      window.removeEventListener('userUpdated', handleUserUpdated)
+      window.removeEventListener('storage', handleStorage)
+    }
   }, [])
 
   useEffect(() => {
@@ -82,20 +117,6 @@ export default function Header() {
     }
   }
 
-  const getBreadcrumb = () => {
-    const path = location.pathname
-    if (path === '/dashboard') return 'Dashboard'
-    if (path.startsWith('/enquiries')) return 'Enquiries'
-    if (path.startsWith('/blogs')) return 'Blogs'
-    if (path.startsWith('/careers')) return 'Careers'
-    if (path.startsWith('/applicants')) return 'Applicants'
-    if (path.startsWith('/gallery')) return 'Gallery'
-    if (path.startsWith('/users')) return 'User Management'
-    if (path.startsWith('/settings')) return 'Settings'
-    if (path.startsWith('/case-studies')) return 'Case Studies'
-    return 'Dashboard'
-  }
-
   const getNotificationIcon = (moduleName: string) => {
     switch (moduleName) {
       case 'Enquiries': return '📨'
@@ -123,24 +144,24 @@ export default function Header() {
     if (!notification.is_read) {
       try {
         await notificationService.markAsRead(notification.id)
-        setNotifications(prev => prev.map(n => n.id === notification.id ? { ...n, is_read: true } : n))
-        setUnreadCount(prev => Math.max(0, prev - 1))
+        setNotifications((prev) => prev.map((n) => (n.id === notification.id ? { ...n, is_read: true } : n)))
+        setUnreadCount((prev) => Math.max(0, prev - 1))
       } catch (error) {
         console.error('Failed to mark as read:', error)
       }
     }
-    
+
     const moduleRoutes: Record<string, string> = {
-      'Enquiries': '/enquiries',
-      'Blogs': '/blogs',
-      'Careers': '/careers',
-      'Applicants': '/applicants',
-      'Gallery': '/gallery',
+      Enquiries: '/enquiries',
+      Blogs: '/blogs',
+      Careers: '/careers',
+      Applicants: '/applicants',
+      Gallery: '/gallery',
       'Case Studies': '/case-studies',
-      'Users': '/users',
-      'Settings': '/settings'
+      Users: '/users',
+      Settings: '/settings',
     }
-    
+
     const route = moduleRoutes[notification.module_name] || '/dashboard'
     setNotificationOpen(false)
     navigate(route)
@@ -151,8 +172,8 @@ export default function Header() {
     if (notification.is_read) return
     try {
       await notificationService.markAsRead(notification.id)
-      setNotifications(prev => prev.map(n => n.id === notification.id ? { ...n, is_read: true } : n))
-      setUnreadCount(prev => Math.max(0, prev - 1))
+      setNotifications((prev) => prev.map((n) => (n.id === notification.id ? { ...n, is_read: true } : n)))
+      setUnreadCount((prev) => Math.max(0, prev - 1))
       toast.success('Marked as read')
     } catch (error) {
       console.error('Failed to mark as read:', error)
@@ -165,8 +186,8 @@ export default function Header() {
     if (!notification.is_read) return
     try {
       await notificationService.markAsUnread(notification.id)
-      setNotifications(prev => prev.map(n => n.id === notification.id ? { ...n, is_read: false } : n))
-      setUnreadCount(prev => prev + 1)
+      setNotifications((prev) => prev.map((n) => (n.id === notification.id ? { ...n, is_read: false } : n)))
+      setUnreadCount((prev) => prev + 1)
       toast.success('Marked as unread')
     } catch (error) {
       console.error('Failed to mark as unread:', error)
@@ -179,9 +200,9 @@ export default function Header() {
     if (window.confirm('Are you sure you want to delete this notification?')) {
       try {
         await notificationService.delete(notification.id)
-        setNotifications(prev => prev.filter(n => n.id !== notification.id))
+        setNotifications((prev) => prev.filter((n) => n.id !== notification.id))
         if (!notification.is_read) {
-          setUnreadCount(prev => Math.max(0, prev - 1))
+          setUnreadCount((prev) => Math.max(0, prev - 1))
         }
         toast.success('Notification deleted')
       } catch (error) {
@@ -195,7 +216,7 @@ export default function Header() {
     try {
       const response = await notificationService.markAllAsRead()
       if (response.success) {
-        setNotifications(prev => prev.map(n => ({ ...n, is_read: true })))
+        setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })))
         setUnreadCount(0)
         toast.success('All notifications marked as read')
       }
@@ -224,34 +245,51 @@ export default function Header() {
     <>
       <header className="bg-white border-b border-gray-200 px-4 lg:px-6 py-3 lg:py-4 sticky top-0 z-30">
         <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <button className="lg:hidden p-2 hover:bg-gray-100 rounded-lg">
+          <div className="flex items-center">
+            <button
+              className="p-2 hover:bg-gray-100 rounded-lg"
+              onClick={() => {
+                // Mobile: open drawer
+                if (onMobileMenuClick) onMobileMenuClick()
+                // Desktop: toggle collapsed state
+                if (onToggleSidebar) onToggleSidebar()
+              }}
+              aria-label="Toggle sidebar"
+            >
               <Menu className="w-5 h-5 text-[#0F172A]" />
             </button>
-            <nav className="flex items-center gap-2 text-sm">
-              <Link to="/dashboard" className="text-gray-500 hover:text-[#2563EB] transition-colors">
-                Home
-              </Link>
-              <span className="text-gray-400">/</span>
-              <span className="font-medium text-[#0F172A]">{getBreadcrumb()}</span>
-            </nav>
           </div>
 
-          <div className="hidden md:flex flex-1 max-w-xl">
-            <div className="relative w-full">
+          <div className="hidden md:flex flex-1 justify-center">
+            <div className="relative w-full max-w-xl">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input
                 type="text"
                 placeholder="Search enquiries, blogs, careers..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && searchQuery.trim()) {
+                    // Navigate to enquiries with search query
+                    navigate(`/enquiries?search=${encodeURIComponent(searchQuery.trim())}`)
+                    setSearchQuery('')
+                  }
+                }}
                 className="w-full pl-10 pr-4 py-2 bg-[#F8FAFC] border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#2563EB] focus:border-transparent outline-none transition-all text-sm"
               />
             </div>
           </div>
 
           <div className="flex items-center gap-2 lg:gap-4">
-            <button className="md:hidden p-2 hover:bg-gray-100 rounded-lg">
+            <button
+              className="md:hidden p-2 hover:bg-gray-100 rounded-lg"
+              onClick={() => {
+                if (searchQuery.trim()) {
+                  navigate(`/enquiries?search=${encodeURIComponent(searchQuery.trim())}`)
+                  setSearchQuery('')
+                }
+              }}
+            >
               <Search className="w-5 h-5 text-gray-600" />
             </button>
 
@@ -302,19 +340,27 @@ export default function Header() {
                       notifications.map((notification) => (
                         <div
                           key={notification.id}
-                          className={`p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors group ${!notification.is_read ? 'bg-blue-50/50' : ''}`}
+                          className={`p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors group ${
+                            !notification.is_read ? 'bg-blue-50/50' : ''
+                          }`}
                         >
                           <div className="flex items-start gap-3">
                             <div className="relative">
                               <span className="text-xl">{getNotificationIcon(notification.module_name)}</span>
                               {notification.priority && (
-                                <span className={`absolute -top-1 -right-1 w-3 h-3 ${getPriorityColor(notification.priority)} rounded-full border-2 border-white`} />
+                                <span
+                                  className={`absolute -top-1 -right-1 w-3 h-3 ${getPriorityColor(notification.priority)} rounded-full border-2 border-white`}
+                                />
                               )}
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-start justify-between gap-2">
                                 <div className="flex-1">
-                                  <p className={`font-medium text-sm ${!notification.is_read ? 'text-[#0F172A]' : 'text-gray-600'}`}>
+                                  <p
+                                    className={`font-medium text-sm ${
+                                      !notification.is_read ? 'text-[#0F172A]' : 'text-gray-600'
+                                    }`}
+                                  >
                                     {notification.title}
                                   </p>
                                   <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{notification.description}</p>
@@ -325,9 +371,7 @@ export default function Header() {
                                     </span>
                                   </div>
                                 </div>
-                                {!notification.is_read && (
-                                  <span className="w-2 h-2 bg-[#2563EB] rounded-full flex-shrink-0 mt-1" />
-                                )}
+                                {!notification.is_read && <span className="w-2 h-2 bg-[#2563EB] rounded-full flex-shrink-0 mt-1" />}
                               </div>
                               <div className="flex items-center gap-2 mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button
@@ -374,7 +418,7 @@ export default function Header() {
                   </div>
                   {notifications.length > 0 && (
                     <div className="p-3 border-t border-gray-200 flex gap-2">
-                      <button 
+                      <button
                         onClick={() => setNotificationOpen(false)}
                         className="flex-1 text-center text-sm text-[#2563EB] hover:text-[#1E40AF] font-medium py-2 hover:bg-blue-50 rounded-lg transition-colors"
                       >
@@ -404,33 +448,48 @@ export default function Header() {
                 className="flex items-center gap-2 p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 <div className="w-8 h-8 bg-[#2563EB] rounded-full flex items-center justify-center">
-                  <User className="w-4 h-4 text-white" />
+                  {profileImage ? (
+                    <img src={profileImage} alt={displayName} className="w-full h-full rounded-full object-cover" />
+                  ) : (
+                    <User className="w-4 h-4 text-white" />
+                  )}
                 </div>
                 <div className="hidden lg:block text-left">
-                  <p className="text-sm font-medium text-[#0F172A]">{user.User_name || 'Admin'}</p>
+                  <p className="text-sm font-medium text-[#0F172A]">{displayName}</p>
                   <p className="text-xs text-gray-500">{user.email || 'admin@aalto.com'}</p>
                 </div>
                 <ChevronDown className="w-4 h-4 text-gray-400 hidden lg:block" />
               </button>
 
               {userMenuOpen && (
-                <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+                <div className="absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
                   <div className="p-4 border-b border-gray-200">
-                    <p className="font-medium text-[#0F172A]">{user.User_name || 'Admin'}</p>
-                    <p className="text-sm text-gray-500">{user.email || 'admin@aalto.com'}</p>
-                    <p className="text-xs text-gray-400 mt-1">Last login: Today</p>
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 bg-[#2563EB] rounded-full flex items-center justify-center flex-shrink-0">
+                        {profileImage ? (
+                          <img src={profileImage} alt={displayName} className="w-full h-full rounded-full object-cover" />
+                        ) : (
+                          <User className="w-6 h-6 text-white" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-[#0F172A] truncate">{displayName}</p>
+                        <p className="text-sm text-gray-500 truncate">{user.role || 'Admin'}</p>
+                        <p className="text-xs text-gray-400 truncate">{user.email || 'admin@aalto.com'}</p>
+                      </div>
+                    </div>
                   </div>
                   <div className="py-2">
                     <Link
                       to="/settings"
-                      className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                     >
                       <User className="w-4 h-4" />
-                      Profile Settings
+                      Settings
                     </Link>
                     <button
                       onClick={handleLogout}
-                      className="flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors w-full"
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors w-full"
                     >
                       <LogOut className="w-4 h-4" />
                       Logout

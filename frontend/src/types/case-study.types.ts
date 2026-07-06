@@ -10,6 +10,7 @@ export interface CaseStudy {
   client_name?: string
   service_type?: ServiceType
   industry?: Industry
+  featured?: boolean
   featured_image?: string
   short_description?: string
   challenge?: string
@@ -31,6 +32,7 @@ export interface CaseStudyFormData {
   client_name: string
   service_type: ServiceType
   industry: Industry
+  featured?: boolean
   featured_image?: File | string
   short_description: string
   challenge: string

@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import LoginPage from './pages/auth/LoginPage'
 import DashboardPage from './pages/dashboard/DashboardPage'
 import EnquiriesListPage from './pages/enquiries/EnquiriesListPage'
@@ -21,8 +21,7 @@ import MainLayout from './components/layout/MainLayout'
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
+    <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/dashboard" element={
           <ProtectedRoute>
@@ -243,7 +242,6 @@ function App() {
         } />
         <Route path="/" element={<Navigate to="/login" replace />} />
       </Routes>
-    </BrowserRouter>
   )
 }
 

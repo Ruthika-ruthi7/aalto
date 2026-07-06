@@ -3,7 +3,9 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { ArrowLeft, Save, X, Upload } from 'lucide-react'
 import { applicantService } from '../../services/applicant.service'
 import { useToast } from '../../components/common/Toast'
-import type { ApplicantFormData, ApplicantStatus } from '../../types/applicant.types'
+import Breadcrumb from '../../components/common/Breadcrumb'
+import { getApplicantJobId } from '../../utils/formatJobReferenceId'
+import type { Applicant, ApplicantFormData, ApplicantStatus } from '../../types/applicant.types'
 
 const statusOptions: { value: ApplicantStatus; label: string }[] = [
   { value: 'new', label: 'New' },
@@ -67,6 +69,20 @@ export default function ApplicantFormPage() {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [loadedJobSource, setLoadedJobSource] = useState<Pick<
+    Applicant,
+    'job_reference' | 'apply_id' | 'career_id' | 'career'
+  > | null>(null)
+
+  const displayJobId = getApplicantJobId({
+    job_reference: loadedJobSource?.job_reference,
+    apply_id: loadedJobSource?.apply_id,
+    career_id: formData.career_id,
+    career:
+      formData.career_id && formData.career_id === loadedJobSource?.career_id
+        ? loadedJobSource?.career
+        : undefined,
+  })
 
    
    
@@ -101,6 +117,12 @@ export default function ApplicantFormPage() {
           hold_reason: data.hold_reason,
           interview_date: data.interview_date,
           interview_feedback: data.interview_feedback,
+        })
+        setLoadedJobSource({
+          job_reference: data.job_reference,
+          apply_id: data.apply_id,
+          career_id: data.career_id || data.apply_id,
+          career: data.career,
         })
       } else {
         toast.error('Failed to load applicant')
@@ -238,11 +260,12 @@ export default function ApplicantFormPage() {
         </button>
         <div>
           <h1 className="text-3xl font-bold text-gray-900">{isView ? 'View Applicant' : isEdit ? 'Edit Applicant' : 'Add New Applicant'}</h1>
+          <Breadcrumb />
           <p className="text-gray-600 mt-1">{isView ? 'View applicant details' : isEdit ? 'Update applicant details' : 'Add a new applicant'}</p>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="max-w-4xl">
+      <form onSubmit={handleSubmit} className="max-w-4xl mx-auto">
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 lg:p-8 space-y-6">
           {/* Personal Information */}
           <div>
@@ -319,6 +342,17 @@ export default function ApplicantFormPage() {
           <div>
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Professional Details</h2>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Job ID</label>
+                <input
+                  type="text"
+                  value={displayJobId}
+                  readOnly
+                  disabled
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
+                />
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Career Position <span className="text-red-500">*</span>

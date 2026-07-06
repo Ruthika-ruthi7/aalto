@@ -11,32 +11,33 @@ const {
   getUnreadCount
 } = require('../controllers/notificationController');
 const authMiddleware = require('../middleware/auth');
+const { checkPermission } = require('../middleware/rbac');
 
 // Apply auth middleware to all routes
 router.use(authMiddleware);
 
 // Get all notifications for the authenticated user
-router.get('/', getAllNotifications);
+router.get('/', checkPermission('Notifications', 'read'), getAllNotifications);
 
 // Get unread count
-router.get('/unread-count', getUnreadCount);
+router.get('/unread-count', checkPermission('Notifications', 'read'), getUnreadCount);
 
 // Get notification by ID
-router.get('/:id', getNotificationById);
+router.get('/:id', checkPermission('Notifications', 'read'), getNotificationById);
 
 // Create notification (admin only)
-router.post('/', createNotification);
+router.post('/', checkPermission('Notifications', 'create'), createNotification);
 
 // Mark notification as read
-router.patch('/:id/read', markAsRead);
+router.patch('/:id/read', checkPermission('Notifications', 'update'), markAsRead);
 
 // Mark notification as unread
-router.patch('/:id/unread', markAsUnread);
+router.patch('/:id/unread', checkPermission('Notifications', 'update'), markAsUnread);
 
 // Mark all notifications as read
-router.patch('/mark-all-read', markAllAsRead);
+router.patch('/mark-all-read', checkPermission('Notifications', 'update'), markAllAsRead);
 
 // Delete notification
-router.delete('/:id', deleteNotification);
+router.delete('/:id', checkPermission('Notifications', 'delete'), deleteNotification);
 
 module.exports = router;

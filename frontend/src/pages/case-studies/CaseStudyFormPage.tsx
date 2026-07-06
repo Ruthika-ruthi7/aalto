@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
-import { ArrowLeft, Save, X, Upload, X as XIcon } from 'lucide-react'
+import { ArrowLeft, Save, X, Upload, X as XIcon, Star } from 'lucide-react'
 import { caseStudyService } from '../../services/case-study.service'
 import { useToast } from '../../components/common/Toast'
+import Breadcrumb from '../../components/common/Breadcrumb'
 import type { CaseStudyFormData, CaseStudyStatus, ServiceType, Industry } from '../../types/case-study.types'
 
 const serviceTypeOptions: { value: ServiceType; label: string }[] = [
@@ -40,10 +41,12 @@ const statusOptions: { value: CaseStudyStatus; label: string }[] = [
 const convertToFormData = (data: CaseStudyFormData): FormData => {
   const formData = new FormData()
   Object.entries(data).forEach(([key, value]) => {
-    if (value !== undefined && value !== null) {
-      if (value instanceof File) {
-        formData.append(key, value)
-      } else if (typeof value === 'number') {
+    if (key === 'featured_image' && value instanceof File) {
+      formData.append(key, value)
+    } else if (key === 'featured' && typeof value === 'boolean') {
+      formData.append(key, value ? '1' : '0')
+    } else if (value !== undefined && value !== null && key !== 'featured_image') {
+      if (typeof value === 'number') {
         formData.append(key, String(value))
       } else if (value !== '') {
         formData.append(key, String(value))
@@ -66,6 +69,7 @@ export default function CaseStudyFormPage() {
     client_name: '',
     service_type: 'engineering',
     industry: 'manufacturing',
+    featured: false,
     featured_image: undefined,
     short_description: '',
     challenge: '',
@@ -98,6 +102,7 @@ export default function CaseStudyFormPage() {
           client_name: data.client_name,
           service_type: data.service_type,
           industry: data.industry,
+          featured: !!data.featured,
           featured_image: undefined,
           short_description: data.short_description || '',
           challenge: data.challenge || '',
@@ -272,6 +277,7 @@ export default function CaseStudyFormPage() {
           </button>
           <div>
             <h1 className="text-3xl font-bold text-[#0F172A]">{isView ? 'View Case Study' : isEdit ? 'Edit Case Study' : 'Add New Case Study'}</h1>
+            <Breadcrumb />
             <p className="text-gray-600 mt-1">{isView ? 'View case study details' : isEdit ? 'Update case study' : 'Create a new case study'}</p>
           </div>
         </div>
@@ -361,6 +367,21 @@ export default function CaseStudyFormPage() {
                   placeholder="e.g., 18 months"
                   maxLength={100}
                 />
+              </div>
+
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="featured-checkbox"
+                  checked={!!formData.featured}
+                  onChange={(e) => handleChange('featured', e.target.checked)}
+                  disabled={isView}
+                  className="w-4 h-4 text-[#2563EB] border-gray-300 rounded focus:ring-[#2563EB]"
+                />
+                <label htmlFor="featured-checkbox" className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer">
+                  <Star className="w-4 h-4 text-yellow-500" />
+                  Featured
+                </label>
               </div>
             </div>
           </div>

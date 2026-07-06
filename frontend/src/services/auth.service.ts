@@ -39,4 +39,16 @@ export const authService = {
     const response = await api.post<ApiResponse<void>>('/auth/change-password', data)
     return response.data
   },
+
+  getProfile: async (): Promise<ApiResponse<any>> => {
+    const response = await api.get<ApiResponse<any>>('/auth/profile')
+    return response.data
+  },
+
+  updateProfile: async (data: FormData): Promise<ApiResponse<any>> => {
+    const response = await api.put<ApiResponse<any>>('/auth/profile', data, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return response.data
+  },
 }

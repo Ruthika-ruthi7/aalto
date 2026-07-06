@@ -4,7 +4,11 @@ import { Search, Plus, Edit, Trash2, Download, Star, Eye, Send } from 'lucide-re
 import { blogService } from '../../services/blog.service'
 import { useToast } from '../../components/common/Toast'
 import ActionMenu from '../../components/common/ActionMenu'
-import type { Blog, BlogFilters } from '../../types/blog.types'
+import PageHeading from '../../components/common/PageHeading'
+import StatusBadge from '../../components/common/StatusBadge'
+import { TABLE_HEAD_CLASS, TABLE_HEADER_CELL_CLASS, TABLE_HEADER_CELL_CENTER_CLASS, TABLE_CELL_CLASS, TABLE_CELL_CENTER_CLASS, ACTION_COL_WIDTH, TABLE_ROW_CLASS, TABLE_SKELETON_CLASS } from '../../components/common/tableStyles'
+import type { Blog, BlogFilters, BlogStatus } from '../../types/blog.types'
+import { BLOG_STATUS_COLORS, BLOG_STATUS_LABELS, BLOG_STATUS_FILTER_OPTIONS } from '../../types/blog.types'
 
 export default function BlogsListPage() {
   const navigate = useNavigate()
@@ -15,12 +19,7 @@ export default function BlogsListPage() {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
 
-  const statusOptions: { value: string; label: string; color: string }[] = [
-    { value: '', label: 'All', color: '' },
-    { value: 'draft', label: 'Draft', color: 'bg-gray-100 text-gray-800' },
-    { value: 'published', label: 'Published', color: 'bg-green-100 text-green-800' },
-    { value: 'unpublished', label: 'Unpublished', color: 'bg-orange-100 text-orange-800' },
-  ]
+  const statusOptions = BLOG_STATUS_FILTER_OPTIONS
 
   const categoryOptions: string[] = [
     'All Categories',
@@ -122,10 +121,10 @@ export default function BlogsListPage() {
   }
 
   const handleTogglePublish = async (blog: Blog) => {
-    const newStatus = blog.job_status === 'published' ? 'unpublished' : 'published'
+    const newStatus: BlogStatus = blog.job_status === 'published' ? 'draft' : 'published'
     try {
       const formData = new FormData()
-      formData.append('job_status', newStatus)
+      formData.append('status', newStatus)
       const response = await blogService.update(blog.id, formData)
       if (response.success) {
         toast.success(`Blog ${newStatus === 'published' ? 'published' : 'unpublished'} successfully`)
@@ -164,14 +163,13 @@ export default function BlogsListPage() {
     }
   ]
 
-  const getStatusBadge = (status: string) => {
-    const option = statusOptions.find(o => o.value === status)
-    return (
-      <span className={`px-3 py-1 rounded-full text-xs font-medium ${option?.color || 'bg-gray-100 text-gray-800'}`}>
-        {option?.label || status || 'Unknown'}
-      </span>
-    )
-  }
+  const getStatusBadge = (status: string) => (
+    <StatusBadge
+      status={status}
+      colorMap={BLOG_STATUS_COLORS}
+      labelMap={BLOG_STATUS_LABELS}
+    />
+  )
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return '-'
@@ -185,20 +183,19 @@ export default function BlogsListPage() {
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-[#0F172A]">Blogs</h1>
-          <p className="text-gray-600 mt-1">Manage all blog posts</p>
-        </div>
-        <button 
-          onClick={() => navigate('/blogs/create')}
-          className="inline-flex items-center gap-2 bg-[#2563EB] hover:bg-[#1E40AF] text-white px-4 py-2.5 rounded-xl font-medium transition-colors"
-        >
-          <Plus className="w-5 h-5" />
-          Add Blog
-        </button>
-      </div>
+      <PageHeading 
+        title="Blogs" 
+        description="Manage all blog posts"
+        action={
+          <button 
+            onClick={() => navigate('/blogs/create')}
+            className="inline-flex items-center gap-2 bg-[#2563EB] hover:bg-[#1E40AF] text-white px-4 py-2.5 rounded-xl font-medium transition-colors"
+          >
+            <Plus className="w-5 h-5" />
+            Add Blog
+          </button>
+        }
+      />
 
       {/* Search and Filters */}
       <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
@@ -266,39 +263,39 @@ export default function BlogsListPage() {
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-[#F8FAFC] border-b border-gray-200">
+            <thead className={TABLE_HEAD_CLASS}>
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-[#0F172A] uppercase tracking-wider">S.No</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-[#0F172A] uppercase tracking-wider">Featured Image</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-[#0F172A] uppercase tracking-wider">Blog Title</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-[#0F172A] uppercase tracking-wider">Category</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-[#0F172A] uppercase tracking-wider">Author</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-[#0F172A] uppercase tracking-wider">Publish Date</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-[#0F172A] uppercase tracking-wider">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-[#0F172A] uppercase tracking-wider">Last Updated</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-[#0F172A] uppercase tracking-wider">Actions</th>
+                <th className={TABLE_HEADER_CELL_CENTER_CLASS}>S.No</th>
+                <th className={TABLE_HEADER_CELL_CLASS}>Featured Image</th>
+                <th className={TABLE_HEADER_CELL_CLASS}>Blog Title</th>
+                <th className={TABLE_HEADER_CELL_CLASS}>Category</th>
+                <th className={TABLE_HEADER_CELL_CLASS}>Author</th>
+                <th className={TABLE_HEADER_CELL_CLASS}>Publish Date</th>
+                <th className={TABLE_HEADER_CELL_CENTER_CLASS}>Status</th>
+                <th className={TABLE_HEADER_CELL_CLASS}>Last Updated</th>
+                <th className={`${TABLE_HEADER_CELL_CENTER_CLASS} ${ACTION_COL_WIDTH}`}>Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {loading ? (
                 [...Array(5)].map((_, i) => (
                   <tr key={i}>
-                    <td colSpan={9} className="px-4 py-4">
+                    <td colSpan={9} className={TABLE_SKELETON_CLASS}>
                       <div className="animate-pulse h-4 bg-gray-200 rounded" />
                     </td>
                   </tr>
                 ))
               ) : blogs.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-12 text-center text-gray-500">
+                  <td colSpan={9} className={`${TABLE_CELL_CLASS} text-center text-gray-500`}>
                     No blogs found
                   </td>
                 </tr>
               ) : (
                 blogs.map((blog, index) => (
-                  <tr key={blog.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 text-gray-600 text-sm">{(page - 1) * 20 + index + 1}</td>
-                    <td className="px-4 py-3">
+                  <tr key={blog.id} className={TABLE_ROW_CLASS}>
+                    <td className={TABLE_CELL_CENTER_CLASS}>{(page - 1) * 20 + index + 1}</td>
+                    <td className={TABLE_CELL_CLASS}>
                       <div className="flex items-center gap-2">
                         {blog.featured_image ? (
                           <img 
@@ -319,15 +316,15 @@ export default function BlogsListPage() {
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className={TABLE_CELL_CLASS}>
                       <div className="font-medium text-[#0F172A] text-sm max-w-xs truncate">{blog.title}</div>
                     </td>
-                    <td className="px-4 py-3 text-gray-600 text-sm">{blog.category || '-'}</td>
-                    <td className="px-4 py-3 text-gray-600 text-sm">{blog.author}</td>
-                    <td className="px-4 py-3 text-gray-600 text-sm">{formatDate(blog.publish_date)}</td>
-                    <td className="px-4 py-3">{getStatusBadge(blog.job_status)}</td>
-                    <td className="px-4 py-3 text-gray-600 text-sm">{formatDate(blog.updated_at)}</td>
-                    <td className="px-4 py-3">
+                    <td className={TABLE_CELL_CLASS}>{blog.category || '-'}</td>
+                    <td className={TABLE_CELL_CLASS}>{blog.author}</td>
+                    <td className={TABLE_CELL_CLASS}>{formatDate(blog.publish_date)}</td>
+                    <td className={TABLE_CELL_CENTER_CLASS}>{getStatusBadge(blog.job_status)}</td>
+                    <td className={TABLE_CELL_CLASS}>{formatDate(blog.updated_at)}</td>
+                    <td className={TABLE_CELL_CENTER_CLASS}>
                       <ActionMenu items={getActionMenuItems(blog)} ariaLabel={`Actions for ${blog.title}`} />
                     </td>
                   </tr>

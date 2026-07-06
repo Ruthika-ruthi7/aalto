@@ -18,7 +18,13 @@ export const caseStudyService = {
       const response = await apiClient.get<any>(
         `${apiConfig.endpoints.caseStudies}?${params.toString()}`
       )
-      return { success: true, data: response.data.data }
+
+      // Backend payloads vary: sometimes it's response.data.data, sometimes response.data.data.data
+      const payload = response.data?.data
+      const paginated = payload?.data ?? payload
+
+      return { success: true, data: paginated }
+
     } catch (error) {
       const apiError = handleApiError(error)
       return { success: false, error: apiError }

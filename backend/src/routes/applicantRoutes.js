@@ -3,6 +3,7 @@ const router = express.Router();
 const { body } = require('express-validator');
 const applicantController = require('../controllers/applicantController');
 const authMiddleware = require('../middleware/auth');
+const { checkPermission } = require('../middleware/rbac');
 
 // Validation rules
 const applicantValidation = [
@@ -13,10 +14,10 @@ const applicantValidation = [
 ];
 
 // Routes
-router.get('/', applicantController.getAllApplicants);
-router.get('/:id', applicantController.getApplicantById);
-router.post('/', applicantValidation, applicantController.createApplicant);
-router.put('/:id', applicantController.updateApplicant);
-router.delete('/:id', applicantController.deleteApplicant);
+router.get('/', authMiddleware, checkPermission('Applicants', 'read'), applicantController.getAllApplicants);
+router.get('/:id', authMiddleware, checkPermission('Applicants', 'read'), applicantController.getApplicantById);
+router.post('/', authMiddleware, checkPermission('Applicants', 'create'), applicantValidation, applicantController.createApplicant);
+router.put('/:id', authMiddleware, checkPermission('Applicants', 'update'), applicantController.updateApplicant);
+router.delete('/:id', authMiddleware, checkPermission('Applicants', 'delete'), applicantController.deleteApplicant);
 
 module.exports = router;

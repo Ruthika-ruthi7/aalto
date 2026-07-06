@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, Filter, Plus, Eye, Edit, Trash2, ChevronDown, Send, Download } from 'lucide-react'
+import { Search, Filter, Plus, Eye, Edit, Trash2, ChevronDown, Send, Download, Star } from 'lucide-react'
 import { caseStudyService } from '../../services/case-study.service'
 import { useToast } from '../../components/common/Toast'
 import ActionMenu from '../../components/common/ActionMenu'
+import PageHeading from '../../components/common/PageHeading'
+import StatusBadge from '../../components/common/StatusBadge'
+import { TABLE_HEAD_CLASS, TABLE_HEADER_CELL_CLASS, TABLE_HEADER_CELL_CENTER_CLASS, TABLE_CELL_CLASS, TABLE_CELL_CENTER_CLASS, ACTION_COL_WIDTH, TABLE_SKELETON_CLASS, TABLE_ROW_CLASS } from '../../components/common/tableStyles'
 import type { CaseStudy, CaseStudyFilters, CaseStudyStatus, ServiceType, Industry } from '../../types/case-study.types'
 
 export default function CaseStudiesListPage() {
@@ -181,9 +184,11 @@ export default function CaseStudiesListPage() {
   const getStatusBadge = (status: CaseStudyStatus) => {
     const option = statusOptions.find(o => o.value === status)
     return (
-      <span className={`px-3 py-1 rounded-full text-xs font-medium ${option?.color || 'bg-gray-100 text-gray-800'}`}>
-        {option?.label || status}
-      </span>
+      <StatusBadge
+        status={status}
+        label={option?.label}
+        colorMap={Object.fromEntries(statusOptions.map(o => [o.value, o.color]))}
+      />
     )
   }
 
@@ -197,28 +202,28 @@ export default function CaseStudiesListPage() {
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-[#0F172A]">Case Studies</h1>
-          <p className="text-gray-600 mt-1">Manage project case studies</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleExportCSV}
-            className="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-          >
-            <Download className="w-5 h-5" />
-            Export CSV
-          </button>
-          <button
-            onClick={() => navigate('/case-studies/new')}
-            className="inline-flex items-center gap-2 bg-[#2563EB] hover:bg-[#1E40AF] text-white px-4 py-2.5 rounded-lg font-medium transition-colors"
-          >
-            <Plus className="w-5 h-5" />
-            Add Case Study
-          </button>
-        </div>
-      </div>
+      <PageHeading 
+        title="Case Studies" 
+        description="Manage project case studies"
+        action={
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleExportCSV}
+              className="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+            >
+              <Download className="w-5 h-5" />
+              Export CSV
+            </button>
+            <button
+              onClick={() => navigate('/case-studies/new')}
+              className="inline-flex items-center gap-2 bg-[#2563EB] hover:bg-[#1E40AF] text-white px-4 py-2.5 rounded-lg font-medium transition-colors"
+            >
+              <Plus className="w-5 h-5" />
+              Add Case Study
+            </button>
+          </div>
+        }
+      />
 
       <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
         <div className="flex flex-col lg:flex-row gap-4">
@@ -286,45 +291,46 @@ export default function CaseStudiesListPage() {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className={TABLE_HEAD_CLASS}>
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">S.No</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Featured Image</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Case Study Title</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Client Name</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Service Type</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Industry</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Last Updated</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
+                <th className={TABLE_HEADER_CELL_CENTER_CLASS}>S.No</th>
+                <th className={TABLE_HEADER_CELL_CLASS}>Featured Image</th>
+                <th className={TABLE_HEADER_CELL_CENTER_CLASS}>Featured</th>
+                <th className={TABLE_HEADER_CELL_CLASS}>Case Study Title</th>
+                <th className={TABLE_HEADER_CELL_CLASS}>Client Name</th>
+                <th className={TABLE_HEADER_CELL_CLASS}>Service Type</th>
+                <th className={TABLE_HEADER_CELL_CLASS}>Industry</th>
+                <th className={TABLE_HEADER_CELL_CENTER_CLASS}>Status</th>
+                <th className={TABLE_HEADER_CELL_CLASS}>Last Updated</th>
+                <th className={`${TABLE_HEADER_CELL_CENTER_CLASS} ${ACTION_COL_WIDTH}`}>Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {loading ? (
                 [...Array(5)].map((_, i) => (
                   <tr key={i}>
-                    <td colSpan={9} className="px-6 py-4">
+                    <td colSpan={10} className={TABLE_SKELETON_CLASS}>
                       <div className="animate-pulse h-4 bg-gray-200 rounded" />
                     </td>
                   </tr>
                 ))
               ) : caseStudies.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={10} className={`${TABLE_CELL_CLASS} text-center text-gray-500`}>
                     No case studies found
                   </td>
                 </tr>
               ) : (
                 caseStudies.map((caseStudy, index) => (
-                  <tr key={caseStudy.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 text-gray-600">{(page - 1) * 20 + index + 1}</td>
-                    <td className="px-6 py-4">
+                  <tr key={caseStudy.id} className={TABLE_ROW_CLASS}>
+                    <td className={TABLE_CELL_CENTER_CLASS}>{(page - 1) * 20 + index + 1}</td>
+                    <td className={TABLE_CELL_CLASS}>
                       {caseStudy.featured_image ? (
                         <img
-                          src={caseStudy.featured_image.startsWith('http') ? caseStudy.featured_image : `${import.meta.env.VITE_API_URL}${caseStudy.featured_image}`}
-                          alt={caseStudy.title}
-                          className="w-16 h-16 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
-                          onClick={() => window.open(caseStudy.featured_image?.startsWith('http') ? caseStudy.featured_image : `${import.meta.env.VITE_API_URL}${caseStudy.featured_image}`, '_blank')}
+                            src={caseStudy.featured_image.startsWith('http') ? caseStudy.featured_image : `${import.meta.env.VITE_API_BASE_URL}${caseStudy.featured_image}`}
+                            alt={caseStudy.title}
+                            className="w-16 h-16 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+                            onClick={() => window.open(caseStudy.featured_image?.startsWith('http') ? caseStudy.featured_image : `${import.meta.env.VITE_API_BASE_URL}${caseStudy.featured_image}`, '_blank')}
                         />
                       ) : (
                         <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center text-gray-400 text-xs">
@@ -332,22 +338,31 @@ export default function CaseStudiesListPage() {
                         </div>
                       )}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className={TABLE_CELL_CENTER_CLASS}>
+                      {caseStudy.featured ? (
+                        <span className="inline-flex items-center gap-1 text-yellow-600">
+                          <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
+                        </span>
+                      ) : (
+                        <span className="text-gray-300">-</span>
+                      )}
+                    </td>
+                    <td className={TABLE_CELL_CLASS}>
                       <div className="font-medium text-[#0F172A]">{caseStudy.title}</div>
                       <div className="text-sm text-gray-500 truncate max-w-xs">{caseStudy.short_description}</div>
                     </td>
-                    <td className="px-6 py-4 text-gray-600">{caseStudy.client_name}</td>
-                    <td className="px-6 py-4">
-                      <span className="px-3 py-1 bg-[#2563EB]/10 text-[#2563EB] rounded-full text-xs font-medium">
+                    <td className={TABLE_CELL_CLASS}>{caseStudy.client_name}</td>
+                    <td className={TABLE_CELL_CLASS}>
+                      <span className="inline-flex px-3 py-1 bg-[#2563EB]/10 text-[#2563EB] rounded-full text-xs font-medium">
                         {formatServiceType(caseStudy.service_type)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-gray-600">{formatIndustry(caseStudy.industry)}</td>
-                    <td className="px-6 py-4">{getStatusBadge(caseStudy.status)}</td>
-                    <td className="px-6 py-4 text-gray-600 text-sm">
+                    <td className={TABLE_CELL_CLASS}>{formatIndustry(caseStudy.industry)}</td>
+                    <td className={TABLE_CELL_CENTER_CLASS}>{getStatusBadge(caseStudy.status)}</td>
+                    <td className={TABLE_CELL_CLASS}>
                       {new Date(caseStudy.updated_at).toLocaleDateString()}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className={TABLE_CELL_CENTER_CLASS}>
                       <ActionMenu items={getActionMenuItems(caseStudy)} ariaLabel={`Actions for ${caseStudy.title}`} />
                     </td>
                   </tr>

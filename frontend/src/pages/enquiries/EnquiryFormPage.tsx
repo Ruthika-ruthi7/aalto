@@ -3,6 +3,7 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { ArrowLeft, Save, X } from 'lucide-react'
 import { enquiryService } from '../../services/enquiry.service'
 import { useToast } from '../../components/common/Toast'
+import Breadcrumb from '../../components/common/Breadcrumb'
 import type { EnquiryFormData, EnquiryStatus } from '../../types/enquiry.types'
 
 const statusOptions: { value: EnquiryStatus; label: string }[] = [
@@ -173,6 +174,7 @@ export default function EnquiryFormPage() {
           <h1 className="text-3xl font-bold text-[#0F172A]">
             {isView ? 'View Enquiry' : isEdit ? 'Edit Enquiry' : 'Add New Enquiry'}
           </h1>
+          <Breadcrumb />
           <p className="text-gray-600 mt-1">
             {isView ? 'View enquiry details' : isEdit ? 'Update enquiry details' : 'Create a new enquiry'}
           </p>

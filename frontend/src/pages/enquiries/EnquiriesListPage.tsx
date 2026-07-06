@@ -1,19 +1,22 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { 
-  Search, 
-  Eye, 
-  Edit, 
-  Trash2, 
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import {
+  Search,
+  Eye,
+  Edit,
+  Trash2,
   Download
 } from 'lucide-react'
 import { enquiryService } from '../../services/enquiry.service'
 import { useToast } from '../../components/common/Toast'
 import ActionMenu from '../../components/common/ActionMenu'
+import PageHeading from '../../components/common/PageHeading'
+import { TABLE_HEAD_CLASS, TABLE_HEADER_CELL_CLASS, TABLE_HEADER_CELL_CENTER_CLASS, TABLE_CELL_CLASS, TABLE_CELL_CENTER_CLASS, ACTION_COL_WIDTH, TABLE_ROW_CLASS, TABLE_SKELETON_CLASS } from '../../components/common/tableStyles'
 import type { Enquiry, EnquiryFilters } from '../../types/enquiry.types'
 
 export default function EnquiriesListPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const toast = useToast()
   const [enquiries, setEnquiries] = useState<Enquiry[]>([])
   const [loading, setLoading] = useState(true)
@@ -25,10 +28,11 @@ export default function EnquiriesListPage() {
     { value: '', label: 'All Status', color: '' },
     { value: 'new', label: 'New', color: 'bg-blue-100 text-blue-800' },
     { value: 'in_progress', label: 'In Progress', color: 'bg-yellow-100 text-yellow-800' },
-    { value: 'contacted', label: 'Contacted', color: 'bg-purple-100 text-purple-800' },
-    { value: 'closed', label: 'Closed', color: 'bg-green-100 text-green-800' },
-    { value: 'rejected', label: 'Rejected', color: 'bg-red-100 text-red-800' },
+    { value: 'completed', label: 'Completed', color: 'bg-green-100 text-green-800' },
+    { value: 'closed', label: 'Closed', color: 'bg-red-100 text-red-800' },
   ]
+
+
 
   const handleExportCSV = () => {
     const headers = ['Name', 'Subject', 'Mobile', 'Email', 'Assigned To', 'Enquired Date', 'Last Updated', 'Status']
@@ -51,6 +55,14 @@ export default function EnquiriesListPage() {
     setFilters({ ...filters, status: (value || undefined) as any })
     setPage(1)
   }
+
+  useEffect(() => {
+    // Check for search query in URL params
+    const searchQuery = searchParams.get('search')
+    if (searchQuery) {
+      setFilters({ ...filters, search: searchQuery })
+    }
+  }, [searchParams])
 
   useEffect(() => {
     loadEnquiries()
@@ -110,13 +122,10 @@ export default function EnquiriesListPage() {
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-[#0F172A]">Enquiries</h1>
-          <p className="text-gray-600 mt-1">Manage all customer enquiries</p>
-        </div>
-        <div className="flex items-center gap-2">
+      <PageHeading 
+        title="Enquiries" 
+        description="Manage all customer enquiries"
+        action={
           <button
             onClick={handleExportCSV}
             className="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700"
@@ -124,8 +133,8 @@ export default function EnquiriesListPage() {
             <Download className="w-5 h-5" />
             Export CSV
           </button>
-        </div>
-      </div>
+        }
+      />
 
       {/* Search and Status Filter */}
       <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
@@ -160,64 +169,76 @@ export default function EnquiriesListPage() {
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-[#F8FAFC] border-b border-gray-200">
+            <thead className={TABLE_HEAD_CLASS}>
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-[#0F172A] uppercase tracking-wider">S.No</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-[#0F172A] uppercase tracking-wider">Full Name</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-[#0F172A] uppercase tracking-wider">Subject</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-[#0F172A] uppercase tracking-wider">Phone</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-[#0F172A] uppercase tracking-wider">Assigned To</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-[#0F172A] uppercase tracking-wider">Enquired Date</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-[#0F172A] uppercase tracking-wider">Last Updated</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-[#0F172A] uppercase tracking-wider">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-[#0F172A] uppercase tracking-wider">Actions</th>
+                <th className={TABLE_HEADER_CELL_CENTER_CLASS}>S.No</th>
+                <th className={TABLE_HEADER_CELL_CLASS}>Full Name</th>
+                <th className={TABLE_HEADER_CELL_CLASS}>Subject</th>
+                <th className={TABLE_HEADER_CELL_CLASS}>Phone</th>
+                <th className={TABLE_HEADER_CELL_CLASS}>Assigned To</th>
+                <th className={TABLE_HEADER_CELL_CLASS}>Enquired Date</th>
+                <th className={TABLE_HEADER_CELL_CLASS}>Last Updated</th>
+                <th className={TABLE_HEADER_CELL_CENTER_CLASS}>Status</th>
+                <th className={`${TABLE_HEADER_CELL_CENTER_CLASS} ${ACTION_COL_WIDTH}`}>Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {loading ? (
                 [...Array(5)].map((_, i) => (
                   <tr key={i}>
-                    <td colSpan={9} className="px-4 py-4">
+                    <td colSpan={9} className={TABLE_SKELETON_CLASS}>
                       <div className="animate-pulse h-4 bg-gray-200 rounded" />
                     </td>
                   </tr>
                 ))
               ) : enquiries.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-12 text-center text-gray-500">
+                  <td colSpan={9} className={`${TABLE_CELL_CLASS} text-center text-gray-500`}>
                     No enquiries found
                   </td>
                 </tr>
               ): (
                 enquiries.map((enquiry, index) => {
-                  const statusOption = statusOptions.find(opt => opt.value === enquiry.status?.toLowerCase())
+                  const statusKey = enquiry.status?.toString().toLowerCase().trim()
+                  const normalizedKey = statusKey === 'in progress' ? 'in_progress' : statusKey
+                  const statusOption = statusOptions.find(opt => opt.value === normalizedKey)
+
                   return (
-                    <tr key={enquiry.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-4 py-3 text-gray-600 text-sm">{(page - 1) * 20 + index + 1}</td>
-                      <td className="px-4 py-3">
-                        <div className="font-medium text-[#0F172A] text-sm">{enquiry.name}</div>
+                    <tr key={enquiry.id} className={TABLE_ROW_CLASS}>
+                      <td className={TABLE_CELL_CENTER_CLASS}>{(page - 1) * 20 + index + 1}</td>
+
+                      <td className={TABLE_CELL_CLASS}>
+
+                        <div className="font-medium text-[#0F172A]">{enquiry.name}</div>
                       </td>
-                      <td className="px-4 py-3 text-gray-600 text-sm max-w-xs truncate">{enquiry.subject || '-'}</td>
-                      <td className="px-4 py-3 text-gray-600 text-sm">{enquiry.mobile}</td>
-                      <td className="px-4 py-3 text-gray-600 text-sm">{typeof enquiry.assigned_to === 'object' ? `${enquiry.assigned_to.first_name} ${enquiry.assigned_to.last_name}` : enquiry.assigned_to || '-'}</td>
-                      <td className="px-4 py-3 text-gray-600 text-sm">
+                      <td className={`${TABLE_CELL_CLASS} max-w-xs truncate`}>{enquiry.subject || '-'}</td>
+                      <td className={TABLE_CELL_CLASS}>{enquiry.mobile}</td>
+                      <td className={TABLE_CELL_CLASS}>
+                        {enquiry.assigned_to && typeof enquiry.assigned_to === 'object'
+                          ? `${enquiry.assigned_to.first_name || ''} ${enquiry.assigned_to.last_name || ''}`.trim() || '-'
+                          : typeof enquiry.assigned_to === 'string'
+                            ? enquiry.assigned_to
+                            : '-'}
+                      </td>
+
+                      <td className={TABLE_CELL_CLASS}>
                         {enquiry.created_at ? new Date(enquiry.created_at).toLocaleDateString() : '-'}
                       </td>
-                      <td className="px-4 py-3 text-gray-600 text-sm">
+                      <td className={TABLE_CELL_CLASS}>
                         {enquiry.last_updated ? new Date(enquiry.last_updated).toLocaleDateString() : '-'}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className={TABLE_CELL_CENTER_CLASS}>
                         {statusOption ? (
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusOption.color}`}>
+                          <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${statusOption.color}`}>
                             {statusOption.label}
                           </span>
                         ) : (
-                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                          <span className="inline-flex px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                             {enquiry.status || 'Unknown'}
                           </span>
                         )}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className={TABLE_CELL_CENTER_CLASS}>
                         <ActionMenu items={getActionMenuItems(enquiry)} ariaLabel={`Actions for ${enquiry.name}`} />
                       </td>
                     </tr>
@@ -248,7 +269,7 @@ export default function EnquiriesListPage() {
                   onClick={() => setPage(i + 1)}
                   className={`px-3 py-1.5 rounded-lg transition-colors ${
                     page === i + 1
-                      ? 'bg-#2563EB text-white'
+                      ? 'bg-[#2563EB] text-white'
                       : 'border border-gray-300 hover:bg-gray-50'
                   }`}
                 >

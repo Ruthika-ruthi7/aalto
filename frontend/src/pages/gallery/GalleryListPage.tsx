@@ -4,6 +4,8 @@ import { Search, Plus, Eye, Edit, Trash2, Power, PowerOff } from 'lucide-react'
 import { galleryService } from '../../services/gallery.service'
 import { useToast } from '../../components/common/Toast'
 import ActionMenu from '../../components/common/ActionMenu'
+import PageHeading from '../../components/common/PageHeading'
+import { TABLE_HEAD_CLASS, TABLE_HEADER_CELL_CLASS, TABLE_HEADER_CELL_CENTER_CLASS, TABLE_CELL_CLASS, TABLE_CELL_CENTER_CLASS, ACTION_COL_WIDTH, TABLE_SKELETON_CLASS, TABLE_ROW_CLASS } from '../../components/common/tableStyles'
 import type { Gallery, GalleryFilters, GalleryStatus } from '../../types/gallery.types'
 
 export default function GalleryListPage() {
@@ -119,21 +121,22 @@ export default function GalleryListPage() {
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-[#0F172A]">Gallery</h1>
-          <p className="text-gray-600 mt-1">Manage image galleries</p>
-        </div>
-        <button 
-          onClick={() => navigate('/gallery/create')}
-          className="inline-flex items-center gap-2 bg-#2563EB hover:bg-#2563EBDark text-white px-4 py-2.5 rounded-xl font-medium transition-colors"
-        >
-          <Plus className="w-5 h-5" />
-          Add Gallery
-        </button>
-      </div>
+      <PageHeading 
+        title="Gallery" 
+        description="Manage image galleries"
+        action={
+          <button 
+            onClick={() => navigate('/gallery/create')}
+            className="inline-flex items-center gap-2 bg-[#2563EB] hover:bg-[#1E40AF] text-white px-4 py-2.5 rounded-xl font-medium transition-colors"
+          >
+            <Plus className="w-5 h-5" />
+            Add Gallery
+          </button>
+        }
+      />
 
       <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+
         <div className="flex flex-col lg:flex-row gap-4">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -161,39 +164,39 @@ export default function GalleryListPage() {
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-[#F8FAFC] border-b border-gray-200">
+            <thead className={TABLE_HEAD_CLASS}>
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-[#0F172A] uppercase tracking-wider">S.No</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-[#0F172A] uppercase tracking-wider">Image</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-[#0F172A] uppercase tracking-wider">Gallery Title</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-[#0F172A] uppercase tracking-wider">Category</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-[#0F172A] uppercase tracking-wider">Uploaded Date</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-[#0F172A] uppercase tracking-wider">Last Updated</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-[#0F172A] uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-[#0F172A] uppercase tracking-wider">Actions</th>
+                <th className={TABLE_HEADER_CELL_CENTER_CLASS}>S.No</th>
+                <th className={TABLE_HEADER_CELL_CLASS}>Image</th>
+                <th className={TABLE_HEADER_CELL_CLASS}>Gallery Title</th>
+                <th className={TABLE_HEADER_CELL_CLASS}>Category</th>
+                <th className={TABLE_HEADER_CELL_CLASS}>Uploaded Date</th>
+                <th className={TABLE_HEADER_CELL_CLASS}>Last Updated</th>
+                <th className={TABLE_HEADER_CELL_CENTER_CLASS}>Status</th>
+                <th className={`${TABLE_HEADER_CELL_CENTER_CLASS} ${ACTION_COL_WIDTH}`}>Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {loading ? (
                 [...Array(5)].map((_, i) => (
                   <tr key={i}>
-                    <td colSpan={8} className="px-6 py-4">
+                    <td colSpan={8} className={TABLE_SKELETON_CLASS}>
                       <div className="animate-pulse h-4 bg-gray-200 rounded" />
                     </td>
                   </tr>
                 ))
               ) : galleries.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={8} className={`${TABLE_CELL_CLASS} text-center text-gray-500`}>
                     No galleries found
                   </td>
                 </tr>
               ) : (
                 galleries.map((gallery, index) => (
-                  <tr key={gallery.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 text-gray-600">{(page - 1) * 20 + index + 1}</td>
-                    <td className="px-6 py-4">
-                      <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden cursor-pointer hover:ring-2 hover:ring-#2563EB transition-all"
+                  <tr key={gallery.id} className={TABLE_ROW_CLASS}>
+                    <td className={TABLE_CELL_CENTER_CLASS}>{(page - 1) * 20 + index + 1}</td>
+                    <td className={TABLE_CELL_CLASS}>
+                      <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden cursor-pointer hover:ring-2 hover:ring-[#2563EB] transition-all"
                            onClick={() => gallery.image_paths && gallery.image_paths.length > 0 && setSelectedImage(gallery.image_paths[0].startsWith('http') ? gallery.image_paths[0] : `http://localhost:5000${gallery.image_paths[0]}`)}>
                         {gallery.image_paths && gallery.image_paths.length > 0 ? (
                           <img 
@@ -206,24 +209,24 @@ export default function GalleryListPage() {
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className={TABLE_CELL_CLASS}>
                       <div className="font-medium text-[#0F172A]">{gallery.gallery_title}</div>
                     </td>
-                    <td className="px-6 py-4 text-gray-600">{gallery.category}</td>
-                    <td className="px-6 py-4 text-gray-600 text-sm">
+                    <td className={TABLE_CELL_CLASS}>{gallery.category}</td>
+                    <td className={TABLE_CELL_CLASS}>
                       {gallery.uploaded_date ? new Date(gallery.uploaded_date).toLocaleDateString() : '-'}
                     </td>
-                    <td className="px-6 py-4 text-gray-600 text-sm">
+                    <td className={TABLE_CELL_CLASS}>
                       {gallery.last_updated ? new Date(gallery.last_updated).toLocaleDateString() : '-'}
                     </td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    <td className={TABLE_CELL_CENTER_CLASS}>
+                      <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
                         gallery.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                       }`}>
                         {gallery.status === 'active' ? 'Active' : 'Inactive'}
                       </span>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className={TABLE_CELL_CENTER_CLASS}>
                       <ActionMenu items={getActionMenuItems(gallery)} ariaLabel={`Actions for ${gallery.gallery_title}`} />
                     </td>
                   </tr>

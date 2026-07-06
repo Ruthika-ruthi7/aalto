@@ -3,6 +3,7 @@ const router = express.Router();
 const { body } = require('express-validator');
 const galleryController = require('../controllers/galleryController');
 const authMiddleware = require('../middleware/auth');
+const { checkPermission } = require('../middleware/rbac');
 const multer = require('multer');
 
 // Configure multer for memory storage (for file size validation)
@@ -30,10 +31,10 @@ const galleryValidation = [
 ];
 
 // Routes
-router.get('/', galleryController.getAllGalleries);
-router.get('/:id', galleryController.getGalleryById);
-router.post('/', upload.array('images', 50), galleryValidation, galleryController.createGallery);
-router.put('/:id', upload.array('images', 50), galleryValidation, galleryController.updateGallery);
-router.delete('/:id', galleryController.deleteGallery);
+router.get('/', authMiddleware, checkPermission('Gallery', 'read'), galleryController.getAllGalleries);
+router.get('/:id', authMiddleware, checkPermission('Gallery', 'read'), galleryController.getGalleryById);
+router.post('/', authMiddleware, checkPermission('Gallery', 'create'), upload.array('images', 50), galleryValidation, galleryController.createGallery);
+router.put('/:id', authMiddleware, checkPermission('Gallery', 'update'), upload.array('images', 50), galleryValidation, galleryController.updateGallery);
+router.delete('/:id', authMiddleware, checkPermission('Gallery', 'delete'), galleryController.deleteGallery);
 
 module.exports = router;

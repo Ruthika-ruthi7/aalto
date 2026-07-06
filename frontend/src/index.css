@@ -65,6 +65,20 @@
   }
 }
 
+@layer components {
+  .table-head {
+    @apply bg-[#F8FAFC] border-b border-gray-200;
+  }
+
+  .table-header-cell {
+    @apply px-4 py-3 text-left text-base font-bold text-[#111827] align-middle normal-case tracking-normal;
+  }
+
+  .table-header-cell-center {
+    @apply px-4 py-3 text-center text-base font-bold text-[#111827] align-middle normal-case tracking-normal;
+  }
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;

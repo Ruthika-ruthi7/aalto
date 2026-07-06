@@ -1,6 +1,28 @@
 export type EmploymentType = string
 export type WorkMode = string
-export type CareerStatus = 'ACTIVE' | 'CLOSED'
+export type CareerStatus = 'ACTIVE' | 'CLOSED' | 'draft' | 'open' | 'closed' | 'archived' | 'expired' | 'on_hold'
+
+export const CAREER_STATUS_COLORS: Record<string, string> = {
+  active: 'bg-green-100 text-green-800',
+  open: 'bg-green-100 text-green-800',
+  published: 'bg-green-100 text-green-800',
+  draft: 'bg-orange-100 text-orange-800',
+  on_hold: 'bg-orange-100 text-orange-800',
+  closed: 'bg-red-100 text-red-800',
+  archived: 'bg-gray-100 text-gray-800',
+  expired: 'bg-gray-100 text-gray-800',
+}
+
+export const CAREER_STATUS_LABELS: Record<string, string> = {
+  active: 'Published',
+  open: 'Published',
+  published: 'Published',
+  draft: 'Draft',
+  on_hold: 'Draft',
+  closed: 'Closed',
+  archived: 'Archived',
+  expired: 'Archived',
+}
 
 export interface Career {
   id: number
@@ -38,6 +60,7 @@ export interface Career {
   status?: CareerStatus | string
   work_mode?: string
   updated_at?: string
+  updated_date?: string
 }
 
 export interface CareerFormData {

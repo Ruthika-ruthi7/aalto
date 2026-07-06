@@ -3,6 +3,7 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { ArrowLeft, Save, X } from 'lucide-react'
 import { careerService } from '../../services/career.service'
 import { useToast } from '../../components/common/Toast'
+import Breadcrumb from '../../components/common/Breadcrumb'
 import type { CareerFormData, CareerStatus, EmploymentType, WorkMode } from '../../types/career.types'
 
 const employmentTypeOptions: { value: EmploymentType; label: string }[] = [
@@ -217,6 +218,7 @@ export default function CareerFormPage() {
           </button>
           <div>
             <h1 className="text-3xl font-bold text-gray-900">{isView ? 'View Career' : isEdit ? 'Edit Career' : 'Add New Career'}</h1>
+            <Breadcrumb />
             <p className="text-gray-600 mt-1">{isView ? 'View job posting' : isEdit ? 'Update job posting' : 'Create a new job posting'}</p>
           </div>
         </div>

@@ -1,8 +1,13 @@
 interface StatusBadgeProps {
   status: string
+  label?: string
   colorMap?: Record<string, string>
+  labelMap?: Record<string, string>
   className?: string
 }
+
+export const BADGE_BASE_CLASSES =
+  'inline-flex items-center px-2.5 py-2.5 rounded-full text-xs font-semibold whitespace-nowrap'
 
 const defaultColorMap: Record<string, string> = {
   new: 'bg-blue-100 text-blue-800',
@@ -12,7 +17,9 @@ const defaultColorMap: Record<string, string> = {
   draft: 'bg-gray-100 text-gray-800',
   inactive: 'bg-red-100 text-red-800',
   unpublished: 'bg-red-100 text-red-800',
+  archived: 'bg-red-100 text-red-800',
   closed: 'bg-red-100 text-red-800',
+  scheduled: 'bg-blue-100 text-blue-800',
   on_hold: 'bg-orange-100 text-orange-800',
   pending: 'bg-yellow-100 text-yellow-800',
   in_progress: 'bg-blue-100 text-blue-800',
@@ -30,13 +37,28 @@ const defaultColorMap: Record<string, string> = {
   rejected: 'bg-red-100 text-red-800',
 }
 
-export default function StatusBadge({ status, colorMap = defaultColorMap, className = '' }: StatusBadgeProps) {
-  const colorClass = colorMap[status.toLowerCase()] || 'bg-gray-100 text-gray-800'
-  const label = status.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
+const defaultLabelMap: Record<string, string> = {
+  unpublished: 'Archived',
+}
+
+function formatStatusLabel(status: string): string {
+  return status.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
+export default function StatusBadge({
+  status,
+  label,
+  colorMap = defaultColorMap,
+  labelMap = defaultLabelMap,
+  className = '',
+}: StatusBadgeProps) {
+  const key = status.toLowerCase()
+  const colorClass = colorMap[key] || 'bg-gray-100 text-gray-800'
+  const displayLabel = label ?? labelMap[key] ?? formatStatusLabel(status)
 
   return (
-    <span className={`px-3 py-1 rounded-full text-xs font-medium ${colorClass} ${className}`}>
-      {label}
+    <span className={`${BADGE_BASE_CLASSES} ${colorClass} ${className}`}>
+      {displayLabel}
     </span>
   )
 }

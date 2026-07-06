@@ -23,10 +23,17 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(helmet());
-app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:5174'],
-  credentials: true
-}));
+// Dev-friendly CORS: allow known frontend origins even if env vars are missing/misconfigured.
+const corsOrigins = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(',').map((origin) => origin.trim())
+  : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5178', 'http://127.0.0.1:5174', 'http://127.0.0.1:54761'];
+const corsCredentials = process.env.CORS_CREDENTIALS === 'true' || !process.env.CORS_CREDENTIALS;
+app.use(
+  cors({
+    origin: corsOrigins,
+    credentials: corsCredentials,
+  })
+);
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

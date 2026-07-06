@@ -9,7 +9,7 @@ const getAllCaseStudies = async (req, res) => {
     const { page = 1, limit = 20, service_type, status, search, industry } = req.query;
     const offset = (page - 1) * limit;
 
-    let query = 'SELECT id, title, slug, client_name, service_type, industry, featured_image, short_description, status, created_at, updated_at FROM case_studies WHERE 1=1';
+    let query = 'SELECT id, title, slug, client_name, service_type, industry, featured, featured_image, short_description, status, created_at, updated_at FROM case_studies WHERE 1=1';
     const params = [];
 
     if (service_type) {
@@ -105,6 +105,7 @@ const createCaseStudy = async (req, res) => {
       client_name,
       service_type,
       industry,
+      featured = 0,
       short_description,
       challenge,
       solution,
@@ -134,9 +135,9 @@ const createCaseStudy = async (req, res) => {
 
     const [result] = await pool.query(
       `INSERT INTO case_studies 
-       (title, slug, client_name, service_type, industry, featured_image, short_description, challenge, solution, results, technologies_used, project_duration, status, created_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [title, slug, client_name, service_type, industry, featuredImagePath, short_description, challenge, solution, results, technologies_used, project_duration, status, req.user?.id]
+       (title, slug, client_name, service_type, industry, featured, featured_image, short_description, challenge, solution, results, technologies_used, project_duration, status, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [title, slug, client_name, service_type, industry, featured ? 1 : 0, featuredImagePath, short_description, challenge, solution, results, technologies_used, project_duration, status, req.user?.id]
     );
 
     const [newCaseStudy] = await pool.query('SELECT * FROM case_studies WHERE id = ?', [result.insertId]);
@@ -157,6 +158,7 @@ const updateCaseStudy = async (req, res) => {
       client_name,
       service_type,
       industry,
+      featured,
       short_description,
       challenge,
       solution,
@@ -212,6 +214,10 @@ const updateCaseStudy = async (req, res) => {
     if (industry !== undefined) {
       updateFields.push('industry = ?');
       updateParams.push(industry);
+    }
+    if (featured !== undefined) {
+      updateFields.push('featured = ?');
+      updateParams.push(featured ? 1 : 0);
     }
     if (short_description !== undefined) {
       updateFields.push('short_description = ?');

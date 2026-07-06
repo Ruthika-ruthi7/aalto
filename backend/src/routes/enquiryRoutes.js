@@ -3,6 +3,7 @@ const router = express.Router();
 const { body } = require('express-validator');
 const enquiryController = require('../controllers/enquiryController');
 const authMiddleware = require('../middleware/auth');
+const { checkPermission } = require('../middleware/rbac');
 
 // Validation rules
 const enquiryValidation = [
@@ -16,10 +17,10 @@ const enquiryValidation = [
 ];
 
 // Routes
-router.get('/', authMiddleware, enquiryController.getAllEnquiries);
-router.get('/:id', authMiddleware, enquiryController.getEnquiryById);
-router.post('/', authMiddleware, enquiryValidation, enquiryController.createEnquiry);
-router.put('/:id', authMiddleware, enquiryController.updateEnquiry);
-router.delete('/:id', authMiddleware, enquiryController.deleteEnquiry);
+router.get('/', authMiddleware, checkPermission('Enquiries', 'read'), enquiryController.getAllEnquiries);
+router.get('/:id', authMiddleware, checkPermission('Enquiries', 'read'), enquiryController.getEnquiryById);
+router.post('/', authMiddleware, checkPermission('Enquiries', 'create'), enquiryValidation, enquiryController.createEnquiry);
+router.put('/:id', authMiddleware, checkPermission('Enquiries', 'update'), enquiryController.updateEnquiry);
+router.delete('/:id', authMiddleware, checkPermission('Enquiries', 'delete'), enquiryController.deleteEnquiry);
 
 module.exports = router;

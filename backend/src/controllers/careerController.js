@@ -62,7 +62,7 @@ const getCareerById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const [careers] = await pool.query('SELECT id, Bu_id, jobDescription, Experience, Locations, Responsibilities, Roles, IndustryType, Department, EmploymentType, RoleCategory, Education, KeySkills, job_titles, job_status FROM careers WHERE id = ?', [id]);
+    const [careers] = await pool.query('SELECT id, Bu_id, jobDescription, Experience, Locations, Responsibilities, Roles, IndustryType, Department, EmploymentType, RoleCategory, Education, KeySkills, job_titles, job_status, created_at, updated_at FROM careers WHERE id = ?', [id]);
 
     if (careers.length === 0) {
       return errorResponse(res, 'Career not found', 404);
@@ -95,12 +95,12 @@ const createCareer = async (req, res) => {
 
     const [result] = await pool.query(
       `INSERT INTO careers 
-       (jobDescription, Experience, Locations, Responsibilities, Roles, IndustryType, Department, EmploymentType, RoleCategory, Education, KeySkills, job_titles, job_status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (jobDescription, Experience, Locations, Responsibilities, Roles, IndustryType, Department, EmploymentType, RoleCategory, Education, KeySkills, job_titles, job_status, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
       [jobDescription, Experience, Locations, Responsibilities, Roles, IndustryType, Department, EmploymentType, RoleCategory, Education, KeySkills, job_titles, job_status]
     );
 
-    const [newCareer] = await pool.query('SELECT id, Bu_id, jobDescription, Experience, Locations, Responsibilities, Roles, IndustryType, Department, EmploymentType, RoleCategory, Education, KeySkills, job_titles, job_status FROM careers WHERE id = ?', [result.insertId]);
+    const [newCareer] = await pool.query('SELECT id, Bu_id, jobDescription, Experience, Locations, Responsibilities, Roles, IndustryType, Department, EmploymentType, RoleCategory, Education, KeySkills, job_titles, job_status, created_at, updated_at FROM careers WHERE id = ?', [result.insertId]);
 
     successResponse(res, newCareer[0], 'Career created successfully', 201);
   } catch (error) {
@@ -131,7 +131,7 @@ const updateCareer = async (req, res) => {
 
     const [result] = await pool.query(
       `UPDATE careers 
-       SET jobDescription = ?, Experience = ?, Locations = ?, Responsibilities = ?, Roles = ?, IndustryType = ?, Department = ?, EmploymentType = ?, RoleCategory = ?, Education = ?, KeySkills = ?, job_titles = ?, job_status = ?
+       SET jobDescription = ?, Experience = ?, Locations = ?, Responsibilities = ?, Roles = ?, IndustryType = ?, Department = ?, EmploymentType = ?, RoleCategory = ?, Education = ?, KeySkills = ?, job_titles = ?, job_status = ?, updated_at = NOW()
        WHERE id = ?`,
       [jobDescription, Experience, Locations, Responsibilities, Roles, IndustryType, Department, EmploymentType, RoleCategory, Education, KeySkills, job_titles, job_status, id]
     );
@@ -140,7 +140,7 @@ const updateCareer = async (req, res) => {
       return errorResponse(res, 'Career not found', 404);
     }
 
-    const [updatedCareer] = await pool.query('SELECT id, Bu_id, jobDescription, Experience, Locations, Responsibilities, Roles, IndustryType, Department, EmploymentType, RoleCategory, Education, KeySkills, job_titles, job_status FROM careers WHERE id = ?', [id]);
+    const [updatedCareer] = await pool.query('SELECT id, Bu_id, jobDescription, Experience, Locations, Responsibilities, Roles, IndustryType, Department, EmploymentType, RoleCategory, Education, KeySkills, job_titles, job_status, created_at, updated_at FROM careers WHERE id = ?', [id]);
 
     successResponse(res, updatedCareer[0], 'Career updated successfully');
   } catch (error) {

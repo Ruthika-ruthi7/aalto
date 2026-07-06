@@ -15,6 +15,7 @@ export interface Applicant {
   additional_info?: string
   apply_id?: number
   career_id?: number
+  job_reference?: string
   status?: ApplicantStatus
   applied_at?: string
   applied_date?: string
@@ -29,7 +30,7 @@ export interface Applicant {
   hold_reason?: string
   interview_date?: string
   interview_feedback?: string
-  career?: { id: number; job_title: string; job_code: string }
+  career?: { id: number; job_title: string; job_code?: string; job_reference?: string }
 }
 
 export interface ApplicantFormData {
